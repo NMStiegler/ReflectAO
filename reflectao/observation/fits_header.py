@@ -282,7 +282,7 @@ class HeaderKeywordMap:
     target_ra_deg: str | None = None
     target_dec_deg: str | None = None
     tube_temp_c: str | None = None
-    """Tube temperature on disk in degrees Celsius (converted to kelvin internally)."""
+    """Tube temperature on disk in degrees Celsius (same unit in :attr:`FrameMetadata.tube_temperature`)."""
 
     ao_lbwfs_fwhm_arcsec: str | None = None
     lgs_rms_wf_residual: str | None = None
@@ -493,15 +493,15 @@ def _optional_str(header: Header, key: str | None) -> str | None:
     return _card_str(header, key)
 
 
-def _tube_temperature_k(header: Header, keys: HeaderKeywordMap) -> Quantity | None:
-    """Tube temperature in kelvin from Celsius on disk."""
+def _tube_temperature_c(header: Header, keys: HeaderKeywordMap) -> Quantity | None:
+    """Tube temperature in degrees Celsius from the FITS card."""
 
     if keys.tube_temp_c is None:
         return None
     v = _card_float(header, keys.tube_temp_c)
     if v is None:
         return None
-    return Quantity(v + 273.15, u.K)
+    return Quantity(v, u.deg_C)
 
 
 def _lgs_rms(header: Header, keys: HeaderKeywordMap) -> Quantity | None:
@@ -600,7 +600,7 @@ class DefaultHeaderAdapter:
             target_dec=_quantity_optional(
                 header, keys.target_dec_deg, value_unit=u.deg, to_unit=u.deg
             ),
-            tube_temperature=_tube_temperature_k(header, keys),
+            tube_temperature=_tube_temperature_c(header, keys),
             ao_lbwfs_fwhm=_quantity_optional(
                 header, keys.ao_lbwfs_fwhm_arcsec, value_unit=u.arcsec, to_unit=u.arcsec
             ),

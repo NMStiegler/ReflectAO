@@ -28,7 +28,7 @@ instances (e.g. [`OSIRIS_HEADER_KEYWORDS`](../reflectao/observation/instruments/
 | `parallactic_angle` | `astropy.units.Quantity \| None` | degree | Parallactic angle. |
 | `target_ra` | `astropy.units.Quantity \| None` | degree | Target right ascension as stored in the header (instrument-specific convention; **not** guaranteed to be ICRS or precessed—verify against your WCS if sub-arcsecond astrometry matters). |
 | `target_dec` | `astropy.units.Quantity \| None` | degree | Target declination; same caveat as `target_ra`. |
-| `tube_temperature` | `astropy.units.Quantity \| None` | kelvin | Tube or relevant telescope temperature: read from Celsius on the card and converted with \(T_\mathrm{K} = T_\mathrm{C} + 273.15\). |
+| `tube_temperature` | `astropy.units.Quantity \| None` | degree Celsius | Tube or relevant telescope temperature; on-disk values (e.g. `TUBETEMP`) are °C and stored without offset. |
 | `ao_lbwfs_fwhm` | `astropy.units.Quantity \| None` | arcsecond | LBWFS spot FWHM (`AOLBFWHM` where present). |
 | `lgs_rms_wf_residual` | `astropy.units.Quantity \| None` | nanometre | Telemetry-style RMS metric (e.g. `LGRMSWF`). **Semantic uncertainty:** the exact optical definition (WFE vs slope, single-mode vs combined) depends on Keck/AO pipeline documentation; this package only parses the numeric card into nanometres. Asserted in [`test_osiris_header.py`](../tests/test_osiris_header.py) and [`test_nirc2_header.py`](../tests/test_nirc2_header.py) against synthetic headers. |
 | `sodium_layer_altitude` | `astropy.units.Quantity \| None` | metre | Sodium / LGS layer altitude context (e.g. OSIRIS `AOFCSALT`). |

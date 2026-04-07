@@ -64,7 +64,7 @@ def test_nirc2_synthetic_matches_reference_maos_header_usage() -> None:
     assert u.isclose(out.ao_lbwfs_fwhm, 1.25 * u.arcsec)
     assert out.mjd_obs == pytest.approx(57990.5)
     assert out.telescope_name == "Keck II"
-    assert u.isclose(out.tube_temperature, (-1.5 + 273.15) * u.K)
+    assert u.isclose(out.tube_temperature, -1.5 * u.deg_C)
     assert u.isclose(out.lgs_rms_wf_residual, 350.0 * u.nm)
 
     wvl_m_reflectao = out.wavelength.to(u.m).value

@@ -58,7 +58,7 @@ class FrameMetadata:
     target_dec : astropy.units.Quantity or None
         Target declination in degrees (header convention).
     tube_temperature : astropy.units.Quantity or None
-        Tube temperature in kelvin (converted from Celsius on disk when applicable).
+        Tube temperature in degrees Celsius (on-disk ``TUBETEMP``-style cards are °C).
     ao_lbwfs_fwhm : astropy.units.Quantity or None
         LBWFS spot FWHM in arcseconds.
     lgs_rms_wf_residual : astropy.units.Quantity or None
@@ -114,7 +114,7 @@ class FrameMetadata:
     """Target declination (canonical unit: degree)."""
 
     tube_temperature: Quantity | None = None
-    """Tube / relevant telescope temperature (canonical unit: kelvin)."""
+    """Tube / relevant telescope temperature (canonical unit: degree Celsius)."""
 
     ao_lbwfs_fwhm: Quantity | None = None
     """LBWFS spot FWHM (canonical unit: arcsecond)."""
