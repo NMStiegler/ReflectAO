@@ -1,3 +1,5 @@
+# Acronyms: NIRC2 — Near-Infrared Camera 2 (Keck II); OSIRIS — OH-Suppressing Infra-Red Imaging Spectrograph.
+
 """Instrument-specific :class:`~reflectao.observation.fits_header.HeaderAdapter` implementations."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Acronyms: AO — adaptive optics; FITS — Flexible Image Transport System; ReflectAO — on-sky vs simulation comparison tooling (name plays on “reflect” + AO).
+
 """ReflectAO: observation metadata, atmosphere inputs, and simulation glue.
 
 The public surface for FITS-based observation metadata is

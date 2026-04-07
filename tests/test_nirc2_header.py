@@ -1,3 +1,7 @@
+# Acronyms: FITS — Flexible Image Transport System; MAOS — Multi-Atmosphere Adaptive Optics Simulation;
+# NIRC2 — Near-Infrared Camera 2 (Keck II); PAARTI — upstream PSF/AO package (reference tree); PSF — point spread function;
+# STRAP — Keck low-order AO sensor; UTC — Coordinated Universal Time; WFS — wavefront sensor.
+
 """NIRC2 header mapping vs reference ``maos_utils.run_maos_comp_to_sky_sim`` card usage.
 
 Covers :class:`~reflectao.observation.Nirc2HeaderAdapter`, :func:`~reflectao.observation.read_fits_header`,

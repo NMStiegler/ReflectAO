@@ -1,3 +1,10 @@
+# Acronyms: AO — adaptive optics; DEC — declination; DM — deformable mirror;
+# FITS — Flexible Image Transport System; FWHM — full width at half maximum;
+# LBWFS — low-bandwidth wavefront sensor; LGS — laser guide star; MJD — Modified Julian Date;
+# ms — millisecond (common on-disk unit for STRAP timing); RA — right ascension;
+# RMS — root mean square; STRAP — Keck low-order AO sensor (integration time from headers);
+# UTC — Coordinated Universal Time; WFE — wavefront error; WFS — wavefront sensor.
+
 """Logical observation metadata extracted from FITS headers (no pixel data).
 
 This module defines :class:`FrameMetadata`, the canonical in-memory representation

@@ -1,3 +1,20 @@
+# Acronyms: AO — adaptive optics; AOFCSALT — AO facility sodium-layer height (FITS keyword, metres);
+# AOLBFWHM — AO LBWFS spot FWHM (FITS keyword); ASIC — application-specific integrated circuit;
+# CUNIT — FITS WCS axis unit keyword prefix (e.g. CUNIT1); DEC — declination (FITS keyword in extras);
+# DM — deformable mirror; DMMRFN — DM matrix / reconstructor filename (FITS keyword);
+# ELAPTIME — elapsed on-sky exposure time (FITS keyword); EXPTIME — exposure time (FITS keyword);
+# FITS — Flexible Image Transport System; FITS COMMENT — text after “/” on a header card (human-readable unit or note); FWHM — full width at half maximum;
+# GUIDFWHM — guide-star FWHM (FITS keyword in extras); HA — hour angle (FITS keyword in extras); HDU — Header/Data Unit;
+# IMAG — imager (OSIRIS imaging mode); KAPA — Keck All-sky Precision Adaptive-optics; KOA — Keck Observatory Archive;
+# LGRMSWF — LGS RMS wavefront residual (FITS keyword); LGS — laser guide star;
+# MAOS — Multi-Atmosphere Adaptive Optics Simulation; MJD-OBS — modified Julian date of observation (FITS keyword);
+# O1FPS — high-order WFS frame rate in hertz (FITS keyword); OSIRIS — OH-Suppressing Infra-Red Imaging Spectrograph;
+# POXPOS — pointing/position telemetry keyword family prefix on some engineering cards; RA — right ascension (FITS keyword in extras);
+# RMS — root mean square; STRAP — Keck low-order AO sensor; STINTTIM — STRAP integration time, on-disk in ms (FITS keyword);
+# TARGWAVE — target wavelength reference (FITS keyword, often carried in extras on OSIRIS); TIME-OBS — time of observation keyword (FITS, unused on raw OSIRIS here);
+# UTC — Coordinated Universal Time (here: sexagesimal UT keyword on OSIRIS headers); WAVECNTR — band centre wavelength in nm (FITS keyword);
+# WCS — world coordinate system; WFE — wavefront error; WFS — wavefront sensor.
+
 """Keck OSIRIS (raw IMAG) FITS headers → :class:`~reflectao.observation.FrameMetadata`.
 
 Keyword mapping was checked against a KAPA commissioning raw frame

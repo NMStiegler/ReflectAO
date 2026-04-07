@@ -1,3 +1,10 @@
+<!--
+Acronyms: AO — adaptive optics; DM — deformable mirror; FITS — Flexible Image Transport System; HDU — Header/Data Unit;
+ICRS — International Celestial Reference System; LBWFS — low-bandwidth wavefront sensor; LGS — laser guide star;
+MJD — Modified Julian Date; STRAP — Keck low-order AO sensor; UTC — Coordinated Universal Time; WCS — world coordinate system;
+WFE — wavefront error; WFS — wavefront sensor.
+-->
+
 # FrameMetadata field reference
 
 This document describes the **logical** (in-memory) meaning of each field on

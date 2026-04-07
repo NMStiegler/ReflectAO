@@ -4,13 +4,13 @@ Comparison of on-sky adaptive optics data with digital-twin / simulation results
 
 This package is heavily work in progress as of April 2026
 
-This repository is separate from [PAARTI](https://github.com/MovingUniverseLab/paarti/tree/dev_brooke_digia_mar_2026), but draws significant inspiration from it, especially from work of [@Brooke Digia](https://github.com/bdigia). Scientific credit, licensing, and citation for algorithms that originate in PAARTI follow that upstream project where applicable.
+This repository is separate from [PAARTI](https://github.com/MovingUniverseLab/paarti/tree/dev_brooke_digia_mar_2026), but draws significant inspiration from it, especially from that of [@Brooke Digia](https://github.com/bdigia). Scientific credit, licensing, and citation for algorithms that originate in PAARTI follow that upstream project where applicable.
 
 This package was developed in part as an exercise in the use of generative AI coding tools for scientific software development using Cursor 3.0.12.  **Note**: code and documentation has been written by AI coding assistants and *may not be accurate* at the moment.
 
 ## Physical quantities
 
-[FrameMetadata](reflectao/observation/frame_metadata.py) stores **Astropy** [Quantity](https://docs.astropy.org/en/stable/units/quantity.html) values with package-specific **canonical units** (e.g. wavelength in nanometres, exposure time in seconds, angles in degrees, frame rates in hertz). Instrument adapters declare the **on-disk** FITS unit (microns for NIRC2 `TARGWAVE`, milliseconds for `STINTTIM`, etc.); conversion happens when headers are read. Use `read_fits_header(path, "osiris" | "nirc2", *, hdu=0)` ([fits_header.py](reflectao/observation/fits_header.py)) to load a header from disk; see [docs/frame_metadata.md](docs/frame_metadata.md) for a field-by-field reference.
+[FrameMetadata](reflectao/observation/frame_metadata.py) stores **Astropy** [Quantity](https://docs.astropy.org/en/stable/units/quantity.html) values with package-specific **canonical units** (e.g. wavelength in nanometres, exposure time in seconds, angles in degrees, frame rates in hertz). Instrument adapters declare the **on-disk** FITS unit—for example **NIRC2** uses `TARGWAVE` (*target wavelength*, stored as microns on the card) and `STINTTIM` (integration time for **STRAP**, Keck's low-order AO sensor, stored as milliseconds on the card); conversion to canonical units happens when headers are read. Use `read_fits_header(path, "osiris" | "nirc2", *, hdu=0)` ([fits_header.py](reflectao/observation/fits_header.py)) to load a header from disk; see [docs/frame_metadata.md](docs/frame_metadata.md) for a field-by-field reference.
 
 ## File Structure Reference
 

@@ -1,3 +1,10 @@
+# Acronyms: AO — adaptive optics; DM — deformable mirror; FITS — Flexible Image Transport System;
+# FWHM — full width at half maximum; HDU — Header/Data Unit;
+# LBWFS — low-bandwidth wavefront sensor; LGRMSWF — LGS RMS wavefront residual (example FITS keyword);
+# LGS — laser guide star; MJD — Modified Julian Date; ms — millisecond; nm — nanometre;
+# RMS — root mean square; STRAP — Keck low-order AO sensor; STINTTIM — STRAP integration time (example FITS keyword);
+# UTC — Coordinated Universal Time; WFE — wavefront error; WFS — wavefront sensor.
+
 """FITS header parsing: keyword maps, adapters, and :func:`read_fits_header`.
 
 This module is the main integration point between :class:`astropy.io.fits.Header`

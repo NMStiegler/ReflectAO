@@ -1,3 +1,5 @@
+# Acronyms: FITS — Flexible Image Transport System; HDU — Header/Data Unit (FITS extension).
+
 """On-sky observation metadata for simulation setup (no pixel science products).
 
 Public objects:

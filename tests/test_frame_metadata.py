@@ -1,3 +1,5 @@
+# Acronyms: FITS — Flexible Image Transport System; HDU — Header/Data Unit; UTC — Coordinated Universal Time.
+
 """Tests for :class:`~reflectao.observation.FrameMetadata` and :class:`DefaultHeaderAdapter`.
 
 :class:`~reflectao.observation.fits_header.DefaultHeaderAdapter` is imported from

@@ -1,3 +1,13 @@
+# Acronyms: AO — adaptive optics; AOLBFWHM — AO LBWFS spot FWHM (FITS keyword); EL — telescope elevation (FITS keyword);
+# AZ — telescope azimuth (FITS keyword); FITS — Flexible Image Transport System; FWHM — full width at half maximum;
+# HDU — Header/Data Unit; LBWFS — low-bandwidth wavefront sensor; LGRMSWF — LGS RMS wavefront residual (FITS keyword);
+# LGS — laser guide star; MAOS — Multi-Atmosphere Adaptive Optics Simulation; MJD — Modified Julian Date; MJD-OBS — modified Julian date of observation (FITS keyword);
+# NIRC2 — Near-Infrared Camera 2 (Keck II); PAARTI — upstream PSF/AO Python package (reference only); PARANG — parallactic angle (FITS keyword);
+# PSF — point spread function; RMS — root mean square; STINTTIM — STRAP integration time, on-disk in ms (FITS keyword);
+# STRAP — Keck low-order AO sensor; TARGDEC — target declination (FITS keyword); TARGRA — target right ascension (FITS keyword);
+# TARGWAVE — target/band wavelength (FITS keyword; microns on NIRC2); TUBETEMP — tube temperature (FITS keyword);
+# WSFRRT — high-order WFS frame rate in hertz (FITS keyword).
+
 """Keck NIRC2 FITS headers for MAOS-style workflows.
 
 Keyword set matches the primary-header cards used in the reference

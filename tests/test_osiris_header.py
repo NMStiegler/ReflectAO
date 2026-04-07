@@ -1,3 +1,6 @@
+# Acronyms: DM — deformable mirror; FITS — Flexible Image Transport System; FWHM — full width at half maximum;
+# LGS — laser guide star; OSIRIS — OH-Suppressing Infra-Red Imaging Spectrograph; UTC — Coordinated Universal Time.
+
 """Integration and unit tests for :class:`~reflectao.observation.OsirisHeaderAdapter` and OSIRIS ``read_fits_header``."""
 
 from __future__ import annotations
