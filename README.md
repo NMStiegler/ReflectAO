@@ -10,7 +10,7 @@ This package was developed in part as an exercise in the use of generative AI co
 
 ## Physical quantities
 
-`[FrameMetadata](reflectao/observation/frame_metadata.py)` stores **Astropy** `[Quantity](https://docs.astropy.org/en/stable/units/quantity.html)` values with package-specific **canonical units** (e.g. wavelength in nanometres, exposure time in seconds, angles in degrees, frame rates in hertz). Instrument adapters declare the **on-disk** FITS unit (microns for NIRC2 `TARGWAVE`, milliseconds for `STINTTIM`, etc.); conversion happens when headers are read. Use `read_fits_header(path, "osiris" | "nirc2", *, hdu=0)` (`[fits_header.py](reflectao/observation/fits_header.py)`) to load a header from disk; see `[docs/frame_metadata.md](docs/frame_metadata.md)` for a field-by-field reference.
+[FrameMetadata](reflectao/observation/frame_metadata.py) stores **Astropy** [Quantity](https://docs.astropy.org/en/stable/units/quantity.html) values with package-specific **canonical units** (e.g. wavelength in nanometres, exposure time in seconds, angles in degrees, frame rates in hertz). Instrument adapters declare the **on-disk** FITS unit (microns for NIRC2 `TARGWAVE`, milliseconds for `STINTTIM`, etc.); conversion happens when headers are read. Use `read_fits_header(path, "osiris" | "nirc2", *, hdu=0)` ([fits_header.py](reflectao/observation/fits_header.py)) to load a header from disk; see [docs/frame_metadata.md](docs/frame_metadata.md) for a field-by-field reference.
 
 ## File Structure Reference
 
