@@ -8,22 +8,11 @@ This repository is separate from [PAARTI](https://github.com/MovingUniverseLab/p
 
 This package was developed in part as an exercise in the use of generative AI coding tools for scientific software development using Cursor 3.0.12.  **Note**: code and documentation has been written by AI coding assistants and *may not be accurate* at the moment.
 
-## Physical quantities
-
-[FrameMetadata](reflectao/observation/frame_metadata.py) stores **Astropy** [Quantity](https://docs.astropy.org/en/stable/units/quantity.html) values with package-specific **canonical units** (e.g. wavelength in nanometres, exposure time in seconds, angles in degrees, frame rates in hertz). Instrument adapters declare the **on-disk** FITS unit—for example **NIRC2** uses `TARGWAVE` (*target wavelength*, stored as microns on the card) and `STINTTIM` (integration time for **STRAP**, Keck's low-order AO sensor, stored as milliseconds on the card); conversion to canonical units happens when headers are read. Use `read_fits_header(path, "osiris" | "nirc2", *, hdu=0)` ([fits_header.py](reflectao/observation/fits_header.py)) to load a header from disk; see [docs/frame_metadata.md](docs/frame_metadata.md) for a field-by-field reference.
-
 ## File Structure Reference
 
-**Deduced layout** for NIRC2 files
+**OSIRIS Files**
 
-```text
-{skyroot}/{YYYYMMDD}nirc2_kp/{cccc}_psf.fits
-```
-
-Here `{YYYYMMDD}` and `nirc2_kp` are **one directory name** (no slash between date and `nirc2_kp`). `{cccc}` is the frame id (e.g. `c2061`)
-
-**Integration test:** by default, `tests/test_nirc2_header.py` uses the lab example  
-`/u/bdigia/work/ao/airopa_input/20170823nirc2_kp/c2061_psf.fits` when that path exists (skipped on machines without it). Override with `REFLECTAO_NIRC2_PSF` pointing at any other `*_psf.fits` with the usual NIRC2 header cards.
+An example file can be found at `/g3/data/kapa/2026feb26/raw/i260226_a010002.fits` on certain machines. Use it for testing & learning what is in a KAPA OSIRIS .fits file if it exists on the machine you're on (MULab cluster).
 
 ## Development
 
@@ -38,7 +27,3 @@ pytest
 Use `**python -m pytest**` (your conda `python`) so Astropy and pytest match the environment.
 
 The `reflectao` package is plain Python on the repo root (no editable `pip install` required for local work). Packaging for PyPI can be added later.
-
-## Status
-
-Observation metadata layer: `reflectao.observation` reads FITS headers into simulation-oriented `FrameMetadata` (`Quantity`-based types; see `tests/` and `docs/frame_metadata.md`).
