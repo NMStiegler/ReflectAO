@@ -160,7 +160,6 @@ SCHEMA = (
     ),
     
     # AO system information
-    
     ColumnDef(
         name="lgs_wfs_rate",
         unit="Hz",
@@ -206,15 +205,20 @@ SCHEMA = (
         unit="dimensionless",
         meaning="Gain of the DM loop",
     ),
-    ColumnDef(
-        name="lgs_wfs_gain",
-        unit="dimensionless",
-        meaning="Gain of the LGS WFS loop",
-    ),
+    
+    # The loop which takes the LGS WFS measurement into account is the 
+    # DM loop which controls the high order modes. The DM loop which controls
+    # the high order DM is informed by the LGS WFS
+    # ColumnDef(
+    #     name="lgs_wfs_gain",
+    #     unit="dimensionless",
+    #     meaning="Gain of the LGS WFS loop"
+    # ),
+
     ColumnDef(
         name="system_gain",
         unit="dimensionless",
-        meaning="System gain factor",
+        meaning="This should be the system loop gain",
     ),
     ColumnDef(
         name="utt_gain",
@@ -231,7 +235,14 @@ SCHEMA = (
         unit="string",
         meaning="AO operations or control mode code/name.", # What is this / where did it come from? Same as reconstructor_name?
     ),
-    
+
+    # Detector information
+    ColumnDef(
+        name="lgs_wfs_detector_gain",
+        unit="counts",
+        meaning="Gain of the lgs wfs detector. How many counts per electron",
+    ),
+
     # Weather information
     ColumnDef(
         name="humidity_dome",

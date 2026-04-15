@@ -4,6 +4,7 @@ import pytest
 from astropy.io import fits
 from astropy.time import Time
 from astropy import units as u
+import numpy as np
 
 from reflectao.build_observation_table import build_observation_table
 from reflectao.schema import new_empty_observation_table
@@ -43,8 +44,8 @@ def test_build_observaiton_table_one_row_with_data_from_fits_header(tmp_path: Pa
     assert tbl["ngs_wavelength"][0] == (6.5E-07 * u.m).to(u.m)
     assert tbl["reconstructor_name"][0] == "26Feb0031.mr"
     assert tbl["dm_gain"][0] == 0.4
-    assert tbl["lgs_wfs_gain"][0] == 600 # <-- Check this it's in counts
-    assert tbl["system_gain"][0] == 2.15 # <-- Check this it's in e- / adu
+    assert tbl["lgs_wfs_detector_gain"][0] == 600
+    assert tbl["system_gain"][0] is np.ma.masked # Not sure if it's listed in this file. The header for it is the detector gain
     assert tbl["utt_gain"][0] == 0.1
     assert tbl["dtt_gain"][0] == 0.1
     assert tbl["ao_mode"][0] == "3" # <-- What is this?
@@ -94,8 +95,8 @@ def test_build_observation_table_two_files(tmp_path: Path):
     assert tbl["ngs_wavelength"][index] == (6.5E-07 * u.m).to(u.m)
     assert tbl["reconstructor_name"][index] == "26Feb0031.mr"
     assert tbl["dm_gain"][index] == 0.4
-    assert tbl["lgs_wfs_gain"][index] == 600 # <-- Check this it's in counts
-    assert tbl["system_gain"][index] == 2.15 # <-- Check this it's in e- / adu
+    assert tbl["lgs_wfs_detector_gain"][index] == 600 # <-- Check this it's in counts
+    assert tbl["system_gain"][index] is np.ma.masked
     assert tbl["utt_gain"][index] == 0.1
     assert tbl["dtt_gain"][index] == 0.1
     assert tbl["ao_mode"][index] == "3" # <-- What is this?
@@ -139,8 +140,8 @@ def test_build_observation_table_two_files(tmp_path: Path):
     assert tbl["ngs_wavelength"][index] == (6.5E-07 * u.m).to(u.m)
     assert tbl["reconstructor_name"][index] == "26Feb0031.mr"
     assert tbl["dm_gain"][index] == 0.4
-    assert tbl["lgs_wfs_gain"][index] == 600 # <-- Check this it's in counts
-    assert tbl["system_gain"][index] == 2.15 # <-- Check this it's in e- / adu
+    assert tbl["lgs_wfs_detector_gain"][index] == 600 # <-- Check this it's in counts
+    assert tbl["system_gain"][index] is np.ma.masked
     assert tbl["utt_gain"][index] == 0.1
     assert tbl["dtt_gain"][index] == 0.1
     assert tbl["ao_mode"][index] == "3" # <-- What is this?
@@ -194,8 +195,8 @@ def test_build_observation_table_extending_table(tmp_path: Path):
     assert tbl["ngs_wavelength"][index] == (6.5E-07 * u.m).to(u.m)
     assert tbl["reconstructor_name"][index] == "26Feb0031.mr"
     assert tbl["dm_gain"][index] == 0.4
-    assert tbl["lgs_wfs_gain"][index] == 600 # <-- Check this it's in counts
-    assert tbl["system_gain"][index] == 2.15 # <-- Check this it's in e- / adu
+    assert tbl["lgs_wfs_detector_gain"][index] == 600 # <-- Check this it's in counts
+    assert tbl["system_gain"][index] is np.ma.masked
     assert tbl["utt_gain"][index] == 0.1
     assert tbl["dtt_gain"][index] == 0.1
     assert tbl["ao_mode"][index] == "3" # <-- What is this?
@@ -239,8 +240,8 @@ def test_build_observation_table_extending_table(tmp_path: Path):
     assert tbl["ngs_wavelength"][index] == (6.5E-07 * u.m).to(u.m)
     assert tbl["reconstructor_name"][index] == "26Feb0031.mr"
     assert tbl["dm_gain"][index] == 0.4
-    assert tbl["lgs_wfs_gain"][index] == 600 # <-- Check this it's in counts
-    assert tbl["system_gain"][index] == 2.15 # <-- Check this it's in e- / adu
+    assert tbl["lgs_wfs_detector_gain"][index] == 600 # <-- Check this it's in counts
+    assert tbl["system_gain"][index] is np.ma.masked
     assert tbl["utt_gain"][index] == 0.1
     assert tbl["dtt_gain"][index] == 0.1
     assert tbl["ao_mode"][index] == "3" # <-- What is this?

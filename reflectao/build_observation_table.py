@@ -158,11 +158,14 @@ def build_observation_table(
         row_vals['ngs_wavelength'] = (inst.get_ngs_wavelength(hdr) * u.m).to(u.nm)
         row_vals['reconstructor_name'] = inst.get_reconstructor_name(hdr)
         row_vals['dm_gain'] = inst.get_dm_gain(hdr)
-        row_vals['lgs_wfs_gain'] = inst.get_lgs_wfs_gain(hdr) # <-- Check this it's in counts
-        row_vals['system_gain'] = inst.get_system_gain(hdr) # <-- Check this it's in e- / adu
+        # row_vals['lgs_wfs_gain'] = inst.get_lgs_wfs_gain(hdr) # <-- Check this it's in counts
+        # row_vals['system_gain'] = inst.get_system_gain(hdr)
         row_vals['utt_gain'] = inst.get_utt_gain(hdr)
         row_vals['dtt_gain'] = inst.get_dtt_gain(hdr)
         row_vals['ao_mode'] = inst.get_ao_mode(hdr) # <-- which ao mode is which?
+
+        row_vals['lgs_wfs_detector_gain'] = inst.get_lgs_wfs_detector_gain(hdr)
+
         row_vals['humidity_dome'] = inst.get_dome_humidity(hdr)
         row_vals['T_dome_air'] = inst.get_dome_temperature(hdr) * u.deg_C
         row_vals['humidity_outside'] = inst.get_outside_humidity(hdr)
