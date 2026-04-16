@@ -18,12 +18,20 @@ An example file can be found at `/g3/data/kapa/2026feb26/raw/i260226_a010002.fit
 
 Keep personal or team planning notes under `planning/` at the repo root; that directory is listed in `.gitignore` so it is never committed.
 
-Use your existing **conda/mamba** environment. Install **astropy**, **pytest**, and **numpy** there if needed. From this directory:
+Use your existing **conda/mamba** environment. From this directory, install the package in editable mode so `import reflectao` works from any working directory (not only when the repo root is on `PYTHONPATH`):
 
 ```bash
-pytest
+pip install -e ".[dev]"
 ```
 
-Use `**python -m pytest**` (your conda `python`) so Astropy and pytest match the environment.
+That installs runtime dependencies (`numpy`, `astropy`) and the optional `dev` extra (`pytest`). If you only need to run tests from the repo root without a global install, you can instead rely on `pytest.ini` (`pythonpath = .`) and install **astropy**, **pytest**, and **numpy** in the environment yourself.
 
-The `reflectao` package is plain Python on the repo root (no editable `pip install` required for local work). Packaging for PyPI can be added later.
+Then:
+
+```bash
+python -m pytest
+```
+
+Use `python -m pytest` (your conda `python`) so Astropy and pytest match the environment.
+
+**Imports:** `reflectao/__init__.py` re-exports `build_observation_table` and schema helpers, so `from reflectao import build_observation_table` and `reflectao.build_observation_table` refer to the same function. Submodules such as `reflectao.kapa_utils` are imported normally, for example `import reflectao.kapa_utils as ku`.
