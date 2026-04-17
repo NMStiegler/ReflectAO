@@ -10,7 +10,7 @@ from reflectao.build_observation_table import build_observation_table
 from reflectao.schema import new_empty_observation_table
 
 
-def test_build_observaiton_table_one_row_with_data_from_fits_header(tmp_path: Path):
+def test_build_observation_table_one_row_with_data_from_fits_header(tmp_path: Path):
     TEST_PATH = "/g3/data/kapa/2026feb26/raw/i260226_a010002.fits"
 
     tbl = build_observation_table(TEST_PATH, instrument="OSIRIS")
@@ -35,9 +35,12 @@ def test_build_observaiton_table_one_row_with_data_from_fits_header(tmp_path: Pa
     assert tbl["wavelength"][0] == 2120 * u.nm
     assert tbl["filter_name"][0] == "Kp"
     assert tbl["airmass"][0] == 1.06095471
+    assert tbl["zenith_angle"][0] == (np.arccos(1.0 / float(tbl["airmass"][0])) * u.rad).to(u.deg) 
     assert tbl["aborted"][0] == False
     assert tbl["dither_name"][0] == "Box4"
     assert tbl["lgs_wfs_rate"][0] == 500 * u.Hz
+    assert tbl["tt_wfs_rate"][0] == 500 * u.Hz
+    assert tbl["tt_wfs_centroid_gain"][0] == 0.711
     assert tbl["lgs_rms_wfe"][0] == 379.9 * u.nm
     assert tbl["lgs_layer_alt"][0] == 85868 * u.m
     assert tbl["ngs_fwhm"][0] == 2.834221576850309 * u.arcsec
@@ -86,9 +89,12 @@ def test_build_observation_table_two_files(tmp_path: Path):
     assert tbl["wavelength"][index] == 2120 * u.nm
     assert tbl["filter_name"][index] == "Kp"
     assert tbl["airmass"][index] == 1.06095471
+    assert tbl["zenith_angle"][index] == (np.arccos(1.0 / float(tbl["airmass"][index])) * u.rad).to(u.deg)
     assert tbl["aborted"][index] == False
     assert tbl["dither_name"][index] == "Box4"
     assert tbl["lgs_wfs_rate"][index] == 500 * u.Hz
+    assert tbl["tt_wfs_rate"][index] == 500 * u.Hz
+    assert tbl["tt_wfs_centroid_gain"][index] == 0.711
     assert tbl["lgs_rms_wfe"][index] == 379.9 * u.nm
     assert tbl["lgs_layer_alt"][index] == 85868 * u.m
     assert tbl["ngs_fwhm"][index] == 2.834221576850309 * u.arcsec
@@ -131,9 +137,12 @@ def test_build_observation_table_two_files(tmp_path: Path):
     assert tbl["wavelength"][index] == 2120 * u.nm
     assert tbl["filter_name"][index] == "Kp"
     assert tbl["airmass"][index] == 1.06095471
+    assert tbl["zenith_angle"][index] == (np.arccos(1.0 / float(tbl["airmass"][index])) * u.rad).to(u.deg)
     assert tbl["aborted"][index] == False
     assert tbl["dither_name"][index] == "Box4"
     assert tbl["lgs_wfs_rate"][index] == 500 * u.Hz
+    assert tbl["tt_wfs_rate"][index] == 500 * u.Hz
+    assert tbl["tt_wfs_centroid_gain"][index] == 0.711
     assert tbl["lgs_rms_wfe"][index] == 379.9 * u.nm
     assert tbl["lgs_layer_alt"][index] == 85868 * u.m
     assert tbl["ngs_fwhm"][index] == 2.834221576850309 * u.arcsec
@@ -186,9 +195,12 @@ def test_build_observation_table_extending_table(tmp_path: Path):
     assert tbl["wavelength"][index] == 2120 * u.nm
     assert tbl["filter_name"][index] == "Kp"
     assert tbl["airmass"][index] == 1.06095471
+    assert tbl["zenith_angle"][index] == (np.arccos(1.0 / float(tbl["airmass"][index])) * u.rad).to(u.deg)
     assert tbl["aborted"][index] == False
     assert tbl["dither_name"][index] == "Box4"
     assert tbl["lgs_wfs_rate"][index] == 500 * u.Hz
+    assert tbl["tt_wfs_rate"][index] == 500 * u.Hz
+    assert tbl["tt_wfs_centroid_gain"][index] == 0.711
     assert tbl["lgs_rms_wfe"][index] == 379.9 * u.nm
     assert tbl["lgs_layer_alt"][index] == 85868 * u.m
     assert tbl["ngs_fwhm"][index] == 2.834221576850309 * u.arcsec
@@ -231,9 +243,12 @@ def test_build_observation_table_extending_table(tmp_path: Path):
     assert tbl["wavelength"][index] == 2120 * u.nm
     assert tbl["filter_name"][index] == "Kp"
     assert tbl["airmass"][index] == 1.06095471
+    assert tbl["zenith_angle"][index] == (np.arccos(1.0 / float(tbl["airmass"][index])) * u.rad).to(u.deg)
     assert tbl["aborted"][index] == False
     assert tbl["dither_name"][index] == "Box4"
     assert tbl["lgs_wfs_rate"][index] == 500 * u.Hz
+    assert tbl["tt_wfs_rate"][index] == 500 * u.Hz
+    assert tbl["tt_wfs_centroid_gain"][index] == 0.711
     assert tbl["lgs_rms_wfe"][index] == 379.9 * u.nm
     assert tbl["lgs_layer_alt"][index] == 85868 * u.m
     assert tbl["ngs_fwhm"][index] == 2.834221576850309 * u.arcsec

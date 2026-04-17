@@ -149,6 +149,11 @@ SCHEMA = (
         meaning="Atmospheric airmass along the line of sight.",
     ),
     ColumnDef(
+        name="zenith_angle",
+        unit="deg",
+        meaning="Zenith angle of the observation, calculated from airmass.",
+    ),
+    ColumnDef(
         name="aborted",
         unit="boolean",
         meaning="Whether the exposure was stopped before completion",
@@ -165,11 +170,16 @@ SCHEMA = (
         unit="Hz",
         meaning="Sampling/frame rate of the high order laser guide star wavefront sensor loop",
     ),
-    # ColumnDef(
-    #     name="tt_wfs_rate",
-    #     unit="Hz",
-    #     meaning="Sampling/frame rate of the low order tip tilt wavefront sensor loop",
-    # ),
+    ColumnDef(
+        name="tt_wfs_rate",
+        unit="Hz",
+        meaning="Sampling/frame rate of the low order tip tilt wavefront sensor loop",
+    ),
+    ColumnDef(
+        name="tt_wfs_centroid_gain",
+        unit="dimensionless",
+        meaning="Centroid gain of the tip tilt wavefront sensor (STRAP or TRICK)",
+    ),
     ColumnDef(
         name="lgs_rms_wfe",
         unit="nm",
@@ -190,11 +200,6 @@ SCHEMA = (
         unit="nm",
         meaning="Effective wavelength of the TT-NGS star", # Is this in the headers/logged? Do we need it?
     ),
-    # ColumnDef(
-    #     name="t_int_ngs",
-    #     unit="s",
-    #     meaning="Integration time of the sensor looking at the TT-NGS",
-    # ),
     ColumnDef(
         name="reconstructor_name",
         unit="string",
@@ -205,16 +210,6 @@ SCHEMA = (
         unit="dimensionless",
         meaning="Gain of the DM loop",
     ),
-    
-    # The loop which takes the LGS WFS measurement into account is the 
-    # DM loop which controls the high order modes. The DM loop which controls
-    # the high order DM is informed by the LGS WFS
-    # ColumnDef(
-    #     name="lgs_wfs_gain",
-    #     unit="dimensionless",
-    #     meaning="Gain of the LGS WFS loop"
-    # ),
-
     ColumnDef(
         name="system_gain",
         unit="dimensionless",
