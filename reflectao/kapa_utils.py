@@ -59,7 +59,7 @@ def get_system_gain(date):
     # and from KAPA commissioning file header /g3/data/KECK/20260112_OSIRIS/KOA_13410/OSIRIS/raw/i260112_a000070.fits
     return 28 * u.electron / u.adu # e- / ADU, how many electrons correspond to one ADU (count). Constant
 
-def convert_adu_to_photo_electrons(adu_per_subap):
+def convert_adu_to_photo_electrons(adu_per_subap, date, mode):
     """
     Description
         Convert Keck I OCAM2k subaperture counts from ADU to photoelectrons
@@ -67,31 +67,39 @@ def convert_adu_to_photo_electrons(adu_per_subap):
 
         :param adu_per_subap: Intensities recorded in each subaperture, in ADU
         :type adu_per_subap: numpy.ndarray of astropy.units.Quantity with units of ADU
+        :param date: The date of the observation as an astropy DateTime object
+        :type date: astropy.time.Time
+        :param mode: The mode of the WFSO1, either 'LGS' or '4LGS' (KAPA)
+        :type mode: str
         :return: Intensities in each subaperture converted to photoelectrons
         :rtype: numpy.ndarray of astropy.units.Quantity with units of electrons
     """
 
     assert(type(adu_per_subap) == u.Quantity and adu_per_subap.unit == u.adu), "Input must be a numpy array of astropy Quantity with units of ADU"
 
-    wfso1_gain = get_wfso1_gain() # Unitless, how many e- cascade out of a single photoelectron
-    system_gain = get_system_gain() # e- / ADU, how many electrons correspond to one ADU (count)
+    wfso1_gain = get_wfso1_gain(date, mode) # Unitless, how many e- cascade out of a single photoelectron
+    system_gain = get_system_gain(date) # e- / ADU, how many electrons correspond to one ADU (count)
     return adu_per_subap * (system_gain / wfso1_gain)
 
-def convert_photo_electrons_to_adu(photo_electrons_per_subap):
+def convert_photo_electrons_to_adu(photo_electrons_per_subap, date, mode):
     """
     Description
         Convert from photoelectrons to ADU recordedby the  Keck I OCAM2k
 
         :param photo_electrons_per_subap: Intensities recorded in each subaperture, in photoelectrons
         :type photo_electrons_per_subap: numpy.ndarray of astropy.units.Quantity with units of electrons
+        :param date: The date of the observation as an astropy DateTime object
+        :type date: astropy.time.Time
+        :param mode: The mode of the WFSO1, either 'LGS' or '4LGS' (KAPA)
+        :type mode: str
         :return: Intensities in each subaperture converted to ADU
         :rtype: numpy.ndarray of astropy.units.Quantity with units of ADU
     """
 
     assert(type(photo_electrons_per_subap) == u.Quantity and photo_electrons_per_subap.unit == u.electron), "Input must be a numpy array of astropy Quantity with units of electrons"
 
-    wfso1_gain = get_wfso1_gain() # Unitless, how many e- cascade out of a single photoelectron
-    system_gain = get_system_gain() # e- / ADU, how many electrons correspond to one ADU (count)
+    wfso1_gain = get_wfso1_gain(date, mode) # Unitless, how many e- cascade out of a single photoelectron
+    system_gain = get_system_gain(date) # e- / ADU, how many electrons correspond to one ADU (count)
     return photo_electrons_per_subap * (wfso1_gain / system_gain)
 
 
@@ -114,7 +122,7 @@ def convert_photo_electrons_to_flux(photo_electrons_per_subap, frame_rate):
     # Brooke Digia: Flux = Gain * Counts / Exptime (https://mirametrics.com/help/mira_al_8/source/magnitude_calculations.htm)
     return photo_electrons_per_subap * frame_rate
 
-def convert_adu_to_flux(adu_per_subap, frame_rate):
+def convert_adu_to_flux(adu_per_subap, frame_rate, date, mode):
     """
     Description
         Convert from ADU to flux (photoelectrons per second) recorded by the Keck I OCAM2k
@@ -123,6 +131,10 @@ def convert_adu_to_flux(adu_per_subap, frame_rate):
         :type adu_per_subap: numpy.ndarray of astropy.units.Quantity with units of ADU
         :param frame_rate: Frame rate of the WFS, in Hz
         :type frame_rate: astropy.units.Quantity with units of Hz
+        :param date: The date of the observation as an astropy DateTime object
+        :type date: astropy.time.Time
+        :param mode: The mode of the WFSO1, either 'LGS' or '4LGS' (KAPA)
+        :type mode: str
         :return: Intensities in each subaperture converted to flux (photoelectrons per second)
         :rtype: numpy.ndarray of astropy.units.Quantity with units of electrons / second
     """
@@ -131,5 +143,5 @@ def convert_adu_to_flux(adu_per_subap, frame_rate):
     assert(type(frame_rate) == u.Quantity and frame_rate.unit == u.Hz), "Frame rate must be an astropy Quantity with units of Hz"
 
     # Brooke Digia: Flux = Gain * Counts / Exptime (https://mirametrics.com/help/mira_al_8/source/magnitude_calculations.htm)
-    photo_electrons_per_subap = convert_adu_to_photo_electrons(adu_per_subap)
+    photo_electrons_per_subap = convert_adu_to_photo_electrons(adu_per_subap, date, mode)
     return convert_photo_electrons_to_flux(photo_electrons_per_subap, frame_rate)
