@@ -10,14 +10,14 @@ import numpy as np
 from astropy import units as u
 from astropy import time
 
-def get_wfso1_gain(mode, date):
+def get_wfso1_gain(date, mode):
     """
     Get the WFSO1 gain for a given mode and date. This is the gain of the OCAM2k detector, which is how many electrons cascade out of a single photoelectron. This is not the same as the system gain, which is how many electrons correspond to one ADU (count) on the detector.
 
-    :param mode: The mode of the WFSO1, either 'LGS' or '4LGS' (KAPA)
-    :type mode: str
     :param date: The date of the observation as an astropy DateTime object
     :type date: astropy.time.Time
+    :param mode: The mode of the WFSO1, either 'LGS' or '4LGS' (KAPA)
+    :type mode: str
     :return: The WFSO1 gain for the given mode and date (unitless)
     :rtype: float
     """
