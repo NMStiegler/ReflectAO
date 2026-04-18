@@ -8,6 +8,56 @@ Noah Stiegler
 
 import numpy as np
 from astropy import units as u
+from astropy import time
+
+def get_wfso1_gain(mode, date):
+    """
+    Get the WFSO1 gain for a given mode and date. This is the gain of the OCAM2k detector, which is how many electrons cascade out of a single photoelectron. This is not the same as the system gain, which is how many electrons correspond to one ADU (count) on the detector.
+
+    :param mode: The mode of the WFSO1, either 'LGS' or '4LGS' (KAPA)
+    :type mode: str
+    :param date: The date of the observation as an astropy DateTime object
+    :type date: astropy.time.Time
+    :return: The WFSO1 gain for the given mode and date (unitless)
+    :rtype: float
+    """
+
+    # ~Date of KAPA installation
+    # Later you can put the dates of any changes here and change the
+    # function to return the right gain for the given detector epoch
+    KAPA_INSTALL_DATE = time.Time('2024-11-01') 
+    assert(date > KAPA_INSTALL_DATE), f"Date must be after {KAPA_INSTALL_DATE.iso} for KAPA gain values to apply"
+
+    # From Avinash, see https://docs.google.com/document/d/1yU_FpeVar_OlH-0ezAmpHIG7s87cANQaT-MNuvUhbBk/edit?tab=t.0
+    # and from KAPA commissioning file header /g3/data/KECK/20260112_OSIRIS/KOA_13410/OSIRIS/raw/i260112_a000070.fits
+    if mode == 'LGS':
+        return 200 # Gain for single lasers (LGS)
+    elif mode == '4LGS' or mode == 'KAPA':
+        return 600 # Gain for multiple lasers (KAPA)
+    else:
+        raise ValueError(f"Invalid mode '{mode}'. Valid modes are currently: 'LGS' and '4LGS' AKA 'KAPA'")
+
+def get_system_gain(date):
+    """
+    Get the system gain for the Keck I OCAM2k LGS WFS detector.
+    This is how many electrons correspond to one ADU (count) on the detector.
+    This is a constant value that does not depend on mode
+
+    :param date: The date of the observation as an astropy DateTime object
+    :type date: astropy.time.Time
+    :return: The system gain for the Keck I OCAM2k detector
+    :rtype: astropy.units.Quantity with units of electrons / ADU
+    """
+
+    # ~Date of KAPA installation
+    # Later you can put the dates of any changes here and change the
+    # function to return the right gain for the given detector epoch
+    KAPA_INSTALL_DATE = time.Time('2024-11-01') 
+    assert(date > KAPA_INSTALL_DATE), f"Date must be after {KAPA_INSTALL_DATE.iso} for KAPA gain values to apply"
+
+    # From Avinash, see https://docs.google.com/document/d/1yU_FpeVar_OlH-0ezAmpHIG7s87cANQaT-MNuvUhbBk/edit?tab=t.0
+    # and from KAPA commissioning file header /g3/data/KECK/20260112_OSIRIS/KOA_13410/OSIRIS/raw/i260112_a000070.fits
+    return 28 * u.electron / u.adu # e- / ADU, how many electrons correspond to one ADU (count). Constant
 
 def convert_adu_to_photo_electrons(adu_per_subap):
     """
@@ -23,11 +73,8 @@ def convert_adu_to_photo_electrons(adu_per_subap):
 
     assert(type(adu_per_subap) == u.Quantity and adu_per_subap.unit == u.adu), "Input must be a numpy array of astropy Quantity with units of ADU"
 
-    # From Avinash (see https://docs.google.com/document/d/1yU_FpeVar_OlH-0ezAmpHIG7s87cANQaT-MNuvUhbBk/edit?tab=t.0)
-    # and from KAPA commissioning file header /g3/data/KECK/20260112_OSIRIS/KOA_13410/OSIRIS/raw/i260112_a000070.fits
-    wfso1_gain = 600 # Unitless, how many e- cascade out of a single photoelectron. 600 for multiple lasers (KAPA), 200 for single lasers (LGS)
-    system_gain = 28 * u.electron / u.adu # e- / ADU, how many electrons correspond to one ADU (count). Constant
-
+    wfso1_gain = get_wfso1_gain() # Unitless, how many e- cascade out of a single photoelectron
+    system_gain = get_system_gain() # e- / ADU, how many electrons correspond to one ADU (count)
     return adu_per_subap * (system_gain / wfso1_gain)
 
 def convert_photo_electrons_to_adu(photo_electrons_per_subap):
@@ -43,12 +90,8 @@ def convert_photo_electrons_to_adu(photo_electrons_per_subap):
 
     assert(type(photo_electrons_per_subap) == u.Quantity and photo_electrons_per_subap.unit == u.electron), "Input must be a numpy array of astropy Quantity with units of electrons"
 
-
-    # From Avinash (see https://docs.google.com/document/d/1yU_FpeVar_OlH-0ezAmpHIG7s87cANQaT-MNuvUhbBk/edit?tab=t.0)
-    # and from KAPA commissioning file header /g3/data/KECK/20260112_OSIRIS/KOA_13410/OSIRIS/raw/i260112_a000070.fits
-    wfso1_gain = 600 # Unitless, how many e- cascade out of a single photoelectron. 600 for multiple lasers (KAPA), 200 for single lasers (LGS)
-    system_gain = 28 * u.electron / u.adu # e- / ADU, how many electrons correspond to one ADU (count). Constant
-
+    wfso1_gain = get_wfso1_gain() # Unitless, how many e- cascade out of a single photoelectron
+    system_gain = get_system_gain() # e- / ADU, how many electrons correspond to one ADU (count)
     return photo_electrons_per_subap * (wfso1_gain / system_gain)
 
 
