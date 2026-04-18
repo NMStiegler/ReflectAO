@@ -54,6 +54,11 @@ SCHEMA = (
         meaning="Name of the instrument (distinct from the telescope or facility identifier).",
     ),
     ColumnDef(
+        name="OSIRIS_imaging_mode",
+        unit="string",
+        meaning="For OSIRIS data, the imaging mode (imaging or spectroscopy)",
+    ),
+    ColumnDef(
         name="telescope_elevation",
         unit="deg",
         meaning="Pointing elevation angle of the telescope when the observation was taken",

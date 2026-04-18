@@ -125,6 +125,7 @@ def build_observation_table(
         ### Telescope / instrument / set information ###
         row_vals['telescope_name'] = inst.get_telescope_name(hdr)
         row_vals['instrument_name'] = inst.get_instrument_name(hdr)
+        row_vals['OSIRIS_imaging_mode'] = inst.get_imaging_mode(hdr) # For OSIRIS, get the imaging mode (imag or spec)
         row_vals['telescope_elevation'] = inst.get_telescope_elevation(hdr) * u.deg
         row_vals['telescope_azimuth'] = inst.get_telescope_azimuth(hdr) * u.deg
         row_vals['plate_scale'] = inst.get_plate_scale(hdr) * u.arcsec / u.pixel
@@ -165,7 +166,8 @@ def build_observation_table(
                 row_vals['tt_wfs_centroid_gain'] = inst.get_TRICK_centroid_gain(hdr)
         row_vals['lgs_rms_wfe'] = inst.get_lgs_rms_wfe(hdr) * u.nm
         row_vals['lgs_layer_alt'] = inst.get_lgs_layer_altitude(hdr) * u.m
-        row_vals['ngs_fwhm'] = inst.get_ngs_fwhm(hdr) * u.arcsec
+        try: row_vals['ngs_fwhm'] = inst.get_ngs_fwhm(hdr) * u.arcsec # Early telemetry might not have this
+        except KeyError: pass
         row_vals['ngs_wavelength'] = (inst.get_ngs_wavelength(hdr) * u.m).to(u.nm)
         row_vals['reconstructor_name'] = inst.get_reconstructor_name(hdr)
         row_vals['dm_gain'] = inst.get_dm_gain(hdr)
@@ -177,15 +179,26 @@ def build_observation_table(
         row_vals['lgs_wfs_detector_gain'] = inst.get_lgs_wfs_detector_gain(hdr)
 
         ### Weather information ###
-        row_vals['humidity_dome'] = inst.get_dome_humidity(hdr)
-        row_vals['T_dome_air'] = inst.get_dome_temperature(hdr) * u.deg_C
-        row_vals['humidity_outside'] = inst.get_outside_humidity(hdr)
-        row_vals['T_outside_air'] = inst.get_outside_temperature(hdr) * u.deg_C
-        row_vals['P_barometric'] = (inst.get_barometric_pressure(hdr) * u.hPa).to(u.Pa)
-        row_vals['wind_direction'] = inst.get_wind_direction(hdr) * u.deg # <-- What reference angle?
-        row_vals['wind_speed'] = inst.get_wind_speed(hdr) * u.m / u.s # <-- What unit is this logged as?
-        row_vals['t_weather_sample'] = inst.get_weather_sample_timestamp_string(hdr)
-        row_vals['T_tube'] = inst.get_tube_temperature(hdr) * u.deg_C
+        # Early telemetry might not have all these parameters, we can 
+        # get them from the weather files hopefully
+        try: row_vals['humidity_dome'] = inst.get_dome_humidity(hdr)
+        except KeyError: pass
+        try: row_vals['T_dome_air'] = inst.get_dome_temperature(hdr) * u.deg_C
+        except KeyError: pass
+        try: row_vals['humidity_outside'] = inst.get_outside_humidity(hdr)
+        except KeyError: pass
+        try: row_vals['T_outside_air'] = inst.get_outside_temperature(hdr) * u.deg_C
+        except KeyError: pass
+        try: row_vals['P_barometric'] = (inst.get_barometric_pressure(hdr) * u.hPa).to(u.Pa)
+        except KeyError: pass
+        try: row_vals['wind_direction'] = inst.get_wind_direction(hdr) * u.deg # <-- What reference angle?
+        except KeyError: pass
+        try: row_vals['wind_speed'] = inst.get_wind_speed(hdr) * u.m / u.s # <-- What unit is this logged as?
+        except KeyError: pass
+        try: row_vals['t_weather_sample'] = inst.get_weather_sample_timestamp_string(hdr)
+        except KeyError: pass
+        try: row_vals['T_tube'] = inst.get_tube_temperature(hdr) * u.deg_C
+        except KeyError: pass
 
         # Calculate atm parameters
         # fried, turbpro, windspds, winddrcts, _, _, _, _, _, _ = estimate_on_sky_conditions(sky_file, 

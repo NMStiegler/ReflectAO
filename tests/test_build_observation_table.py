@@ -17,6 +17,8 @@ def test_build_observation_table_one_row_with_data_from_fits_header(tmp_path: Pa
     assert len(tbl) == 1
     assert tbl["image_path"][0] == TEST_PATH
     assert tbl["telescope_name"][0] == "Keck I"
+    assert tbl["instrument_name"][0] == "OSIRIS"
+    assert tbl["OSIRIS_imaging_mode"][0] == "imag"
     assert tbl["telescope_elevation"][0] == 70.46442749 * u.deg
     assert tbl["telescope_azimuth"][0] == -12.33360863  * u.deg
     assert tbl["plate_scale"][0] == 0.0099576 * u.arcsec / u.pixel
@@ -72,6 +74,8 @@ def test_build_observation_table_two_files(tmp_path: Path):
     index = 0
     assert tbl["image_path"][index] == TEST_PATH[index]
     assert tbl["telescope_name"][index] == "Keck I"
+    assert tbl["instrument_name"][index] == "OSIRIS"
+    assert tbl["OSIRIS_imaging_mode"][index] == "imag"
     assert tbl["telescope_elevation"][index] == 70.46442749 * u.deg
     assert tbl["telescope_azimuth"][index] == -12.33360863  * u.deg
     assert tbl["plate_scale"][index] == 0.0099576 * u.arcsec / u.pixel
@@ -121,6 +125,8 @@ def test_build_observation_table_two_files(tmp_path: Path):
     index = 1
     assert tbl["image_path"][index] == TEST_PATH[index]
     assert tbl["telescope_name"][index] == "Keck I"
+    assert tbl["instrument_name"][index] == "OSIRIS"
+    assert tbl["OSIRIS_imaging_mode"][index] == "imag"
     assert tbl["telescope_elevation"][index] == 70.46442749 * u.deg
     assert tbl["telescope_azimuth"][index] == -12.33360863  * u.deg
     assert tbl["plate_scale"][index] == 0.0099576 * u.arcsec / u.pixel
@@ -180,6 +186,8 @@ def test_build_observation_table_extending_table(tmp_path: Path):
     index = 0
     assert tbl["image_path"][index] == TEST_PATH
     assert tbl["telescope_name"][index] == "Keck I"
+    assert tbl["instrument_name"][index] == "OSIRIS"
+    assert tbl["OSIRIS_imaging_mode"][index] == "imag"
     assert tbl["telescope_elevation"][index] == 70.46442749 * u.deg
     assert tbl["telescope_azimuth"][index] == -12.33360863  * u.deg
     assert tbl["plate_scale"][index] == 0.0099576 * u.arcsec / u.pixel
@@ -229,6 +237,8 @@ def test_build_observation_table_extending_table(tmp_path: Path):
     index = 1
     assert tbl["image_path"][index] == TEST_PATH
     assert tbl["telescope_name"][index] == "Keck I"
+    assert tbl["instrument_name"][index] == "OSIRIS"
+    assert tbl["OSIRIS_imaging_mode"][index] == "imag"
     assert tbl["telescope_elevation"][index] == 70.46442749 * u.deg
     assert tbl["telescope_azimuth"][index] == -12.33360863  * u.deg
     assert tbl["plate_scale"][index] == 0.0099576 * u.arcsec / u.pixel
