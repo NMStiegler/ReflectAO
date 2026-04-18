@@ -83,6 +83,8 @@ def build_observation_table(
     :param table: Optional existing observation table to extend.
         If provided, it must already contain all schema columns.
     :type table: astropy.table.Table, optional
+    :param verbose: If True, print additional information during processing.
+    :type verbose: bool, optional
     :raises ValueError: If `table` is provided but does not match the schema.
     :raises NotImplementedError: If the instrument is not supported yet.
     :return: Observation table with one row per FITS file and all schema columns.
