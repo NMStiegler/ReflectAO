@@ -43,6 +43,7 @@ def test_build_observation_table_one_row_with_data_from_fits_header(tmp_path: Pa
     assert tbl["tt_wfs_centroid_gain"][0] == 0.711
     assert tbl["lgs_rms_wfe"][0] == 379.9 * u.nm
     assert tbl["lgs_layer_alt"][0] == 85868 * u.m
+    assert tbl["OSIRIS_tt_sensor"][0] == "STRAP"
     assert tbl["ngs_fwhm"][0] == 2.834221576850309 * u.arcsec
     assert tbl["ngs_wavelength"][0] == (6.5E-07 * u.m).to(u.m)
     assert tbl["reconstructor_name"][0] == "26Feb0031.mr"
@@ -97,6 +98,7 @@ def test_build_observation_table_two_files(tmp_path: Path):
     assert tbl["tt_wfs_centroid_gain"][index] == 0.711
     assert tbl["lgs_rms_wfe"][index] == 379.9 * u.nm
     assert tbl["lgs_layer_alt"][index] == 85868 * u.m
+    assert tbl["OSIRIS_tt_sensor"][index] == "STRAP"
     assert tbl["ngs_fwhm"][index] == 2.834221576850309 * u.arcsec
     assert tbl["ngs_wavelength"][index] == (6.5E-07 * u.m).to(u.m)
     assert tbl["reconstructor_name"][index] == "26Feb0031.mr"
@@ -145,6 +147,7 @@ def test_build_observation_table_two_files(tmp_path: Path):
     assert tbl["tt_wfs_centroid_gain"][index] == 0.711
     assert tbl["lgs_rms_wfe"][index] == 379.9 * u.nm
     assert tbl["lgs_layer_alt"][index] == 85868 * u.m
+    assert tbl["OSIRIS_tt_sensor"][index] == "STRAP"
     assert tbl["ngs_fwhm"][index] == 2.834221576850309 * u.arcsec
     assert tbl["ngs_wavelength"][index] == (6.5E-07 * u.m).to(u.m)
     assert tbl["reconstructor_name"][index] == "26Feb0031.mr"
@@ -203,6 +206,7 @@ def test_build_observation_table_extending_table(tmp_path: Path):
     assert tbl["tt_wfs_centroid_gain"][index] == 0.711
     assert tbl["lgs_rms_wfe"][index] == 379.9 * u.nm
     assert tbl["lgs_layer_alt"][index] == 85868 * u.m
+    assert tbl["OSIRIS_tt_sensor"][index] == "STRAP"
     assert tbl["ngs_fwhm"][index] == 2.834221576850309 * u.arcsec
     assert tbl["ngs_wavelength"][index] == (6.5E-07 * u.m).to(u.m)
     assert tbl["reconstructor_name"][index] == "26Feb0031.mr"
@@ -251,6 +255,7 @@ def test_build_observation_table_extending_table(tmp_path: Path):
     assert tbl["tt_wfs_centroid_gain"][index] == 0.711
     assert tbl["lgs_rms_wfe"][index] == 379.9 * u.nm
     assert tbl["lgs_layer_alt"][index] == 85868 * u.m
+    assert tbl["OSIRIS_tt_sensor"][index] == "STRAP"
     assert tbl["ngs_fwhm"][index] == 2.834221576850309 * u.arcsec
     assert tbl["ngs_wavelength"][index] == (6.5E-07 * u.m).to(u.m)
     assert tbl["reconstructor_name"][index] == "26Feb0031.mr"

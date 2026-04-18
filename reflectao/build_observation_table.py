@@ -64,6 +64,7 @@ def build_observation_table(
     telemetry_path=None,
     weather_path=None,
     table=None,
+    verbose=False
 ):
     """
     Build or extend the canonical per-frame observation table.
@@ -152,6 +153,7 @@ def build_observation_table(
         row_vals['lgs_wfs_rate'] = inst.get_lgs_wfs_rate(hdr) * u.Hz
         if inst.get_instrument_name(hdr) == "OSIRIS": # Get tip tilt / NGS sensor information, which can differ on OSIRIS/Keck I
             TT_sensor = inst.get_tip_tilt_wfs_name(hdr) # Either STRAP or NIRTTS (TRICK)
+            row_vals['OSIRIS_tt_sensor'] = TT_sensor
             if TT_sensor == "STRAP":
                 tt_wfs_integration_time = inst.get_STRAP_integration_time(hdr) * u.ms
                 row_vals['tt_wfs_rate'] = (1.0 / tt_wfs_integration_time).to(u.Hz)

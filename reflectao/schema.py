@@ -191,6 +191,11 @@ SCHEMA = (
         meaning="Altitude of the sodium layer",
     ),
     ColumnDef(
+        name="OSIRIS_tt_sensor",
+        unit="string",
+        meaning="For OSIRIS data, which tip-tilt sensor was used (STRAP or NIRTTS/TRICK)?",
+    ),
+    ColumnDef(
         name="ngs_fwhm",
         unit="arcsec",
         meaning="FWHM size of the TT-NGS on the sky for the observation", # Is this true/logged?
