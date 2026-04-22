@@ -1,5 +1,6 @@
 """
-Utilities for working with data from the Keck I telemetry system
+Utilities for working with data from the Keck I telemetry system, specifically
+focused on the post-KAPA upgrade
 
 Noah Stiegler
 4/15/26
@@ -21,31 +22,164 @@ import paarti.utils.maos_utils as mu
 ### Useful References ###
 
 # List of nights with telemetry available
-night_list = ["2025nov06",
-              "2025nov08",
-              "2025dec04",
-              "2026dec06",
-              "2026feb26",
-              "2026feb28",
-            #   "2026jan12", <-- No telemetry (TRS server down)
-            #   "2026jan31", <-- Telemetry files are empty (lingering TRS issue)
-              "2026mar04"]
+good_kapa_night_list = ["2025nov06",
+                 #   "2025nov08", <-- Telemetry doesn't match data (which is is in a weird place too)
+                   "2025dec04",
+                   "2025dec06",
+                   "2026feb26",
+                   "2026feb28",
+                 #   "2026jan12", <-- No telemetry (TRS server down)
+                 #   "2026jan31", <-- Telemetry files are empty (lingering TRS issue)
+                   "2026mar04"]
 
-# For each night, we want to know which sets and which images have good files to
+# Some nights didn't record t_exposure_duration right. Keeping track
+nights_with_exposure_duration_issues = [
+    "2025nov06", # All images have t_exposure_duration that is much longer than t_int * num_coadds <(5000.0 s) does not match t_int * num_coadds (4.425 s)>
+]
+
+# Some nights have data stored in a slightly different format than usual
+nights_with_weird_image_paths = [
+    "2025nov08", # Images are in raw/ instead of raw_images/
+]
+
+# For each night, we want to know which sets and which images have good ocam2k files to
 # analyze. Here we'll organize that information by dictionaries where keys are
 # night dates (as YYYYmonDD strings) and values are dictionaries with set_num
-# keys and lists of their images with good telemetry files as values. We'll
-# start by just listing all the nights and having empty dictionaries
-good_img_telemetry = {
-    # "2025nov06": {}, <--- set 1 image 78-173 exist. Not great logging. 
+# keys and lists of their images with good telemetry files as values. Each image
+# listed here is one that has telemetry from 4 laser guide stars and wfe < 1000nm
+# (ensuring closed loop). I tried to be generous on the closed loop criterion
+# so this might not be the *best* telemetry
+# Data generated from find_telemetry_files_in_LTAO.ipynb (currently in /u/nstieg/work/ao/keck/kapa/telemetry/)
+good_kapa_img_wfs_telemetry = {
+    "2025nov06": {
+        1: [114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159]
+    },
     "2025nov08": {},
-    "2025dec04": {},
-    "2026dec06": {},
-    "2026feb26": {},
-    "2026feb28": {},
-    "2026mar04": {}
+    "2025dec04": {
+        1: [2],
+        2: [10, 11, 12, 13, 14],
+        3: [2, 3, 4, 5, 6, 7, 8, 9],
+        6: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+        7: [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13],
+        8: [2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123],
+    },
+    "2026dec06": {
+        1: [2, 12, 14, 20, 21, 25, 42, 50, 53, 55],
+        3: [8],
+        4: [5, 6, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 25, 28, 29, 30, 31, 32],
+        5: [3, 5, 7, 9, 10, 11],
+        6: [2, 3, 5, 7, 8, 9, 10, 11],
+        7: [2, 3, 4, 5],
+        8: [2, 3, 4, 5, 7, 8, 9, 12, 13],
+        9: [2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 21, 22, 24],
+    },
+    "2026feb26": {
+        0: [15, 16, 18, 37, 47, 64, 123, 136],
+        4: [5],
+        7: [10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50],
+        9: [2, 3, 4, 5, 6, 8, 9],
+        10: [2, 3, 4, 5, 6, 7, 8, 9],
+        11: [2, 3, 4, 5, 6, 7, 8, 9],
+        12: [2, 3, 4, 5, 6, 8, 9],
+        13: [2, 3, 4, 5, 6, 7, 8, 9],
+        14: [2, 3, 4, 5, 6, 7, 8, 9],
+        15: [2, 3, 5, 6, 7, 8, 9],
+        16: [2, 3, 4, 5, 6, 7, 8, 9],
+        17: [2, 3, 4, 5, 6, 7, 8, 9],
+        18: [2, 3, 4, 5, 6, 7, 9],
+        19: [2, 3, 4, 5, 6, 7, 8, 9],
+        20: [2, 3, 4, 5, 6, 7, 8, 9],
+        21: [2, 3, 4, 5, 6, 7, 9],
+        22: [2, 3, 4, 5, 6, 7, 8, 9],
+        23: [2, 3, 4, 5, 6, 7, 8, 9],
+        24: [2],
+        25: [2],
+        26: [2],
+        27: [2],
+        28: [2, 3, 4, 6, 7],
+        29: [2],
+        30: [2],
+        31: [2],
+        32: [2, 3, 4, 5, 6, 7, 8, 9, 10],
+        33: [2],
+        34: [2, 3, 4, 5],
+        35: [2],
+        36: [2],
+        37: [2],
+        38: [2],
+        39: [2, 3, 4],
+        40: [2],
+        41: [3, 4, 5, 6, 7, 8, 9, 10],
+        42: [2, 3, 4, 5, 6, 7, 8, 9, 10],
+        43: [2, 3, 4, 5, 6, 7, 8],
+        44: [2],
+    },
+    "2026feb28": {
+        1: [2],
+        2: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83],
+        4: [11],
+        5: [2, 3, 4, 5, 6, 7, 8, 9],
+        13: [2],
+        14: [2],
+        15: [2, 3, 4, 5, 6, 7, 8, 9, 10],
+        16: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+        17: [2],
+        18: [2, 3, 4, 5, 6],
+        20: [2],
+        21: [2, 3, 4, 5, 6, 7, 8, 9, 10],
+        23: [2, 3, 4, 5, 6, 7, 8, 9, 10],
+        24: [2, 3, 4, 5, 6, 7, 9, 10],
+        36: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
+    },
+    "2026mar04": {
+        1: [10, 11],
+        2: [10, 11, 12, 13, 14, 15, 16, 17, 18],
+        3: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42],
+        4: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+        5: [2, 3, 4, 5, 6, 7, 8, 9],
+        6: [2, 6, 7, 8, 9],
+        7: [2, 3, 4, 5, 6, 7, 8, 9],
+        8: [2, 3, 4, 5, 6, 7],
+        9: [2, 3, 4, 5],
+        10: [2, 3, 4, 5, 6, 7, 8, 9],
+        11: [2, 3],
+        12: [2, 3, 4, 5, 6, 7, 8, 9],
+        13: [2, 3, 4, 5, 6, 7, 8, 9],
+        14: [2, 3, 4, 5, 6, 7, 8, 9],
+        15: [2, 3, 4, 5, 6, 7, 8, 9],
+        16: [2, 3, 4, 5, 6, 7, 8, 9],
+        17: [2, 3, 4, 5, 6, 7, 8, 9],
+        18: [2, 3, 4, 5],
+        19: [2, 3, 4, 5],
+        20: [2, 3, 4, 5],
+        21: [2, 3, 4, 5],
+        22: [2, 3, 4, 5],
+        23: [2, 3, 4, 5],
+        24: [2, 3, 4, 5],
+        25: [2, 3, 4, 5],
+        26: [2, 4, 5],
+        27: [2, 3, 4, 5],
+        28: [2, 3, 4, 5],
+        29: [2, 3, 4, 5],
+        30: [2, 3, 4, 5],
+        31: [2, 3, 4, 5],
+        32: [2],
+        33: [2, 3, 4, 5],
+        34: [2, 3, 4, 5],
+        35: [2, 3, 4, 5],
+        36: [2, 3, 4, 5],
+        37: [2],
+        38: [2, 3, 4, 5],
+        39: [2, 3, 4, 5],
+        40: [2, 3, 4, 5],
+        41: [2, 3, 4, 5],
+        42: [2],
+        43: [2],
+        44: [2],
+        45: [2, 3, 4, 5, 6, 7, 8],
+        46: [2, 3, 4, 5],
+    }
 }
-
 
 ### Internal Helper Functions ###
 
@@ -65,6 +199,26 @@ def _check_set_param(set_num):
 
 def _check_image_param(image_num):
     assert(isinstance(image_num, int)), "Image must be an integer"
+
+from datetime import datetime
+
+def convert_to_ut_seconds(iso_ts=None):
+    """
+    Converts OSIRIS style timestamps to UT seconds after midnight.
+    """
+    # if raw_ts:
+    #     # Raw timestamp is in nanoseconds (19 digits)
+    #     # Convert to seconds, then get the remainder of a day (86400 seconds)
+    #     seconds_since_epoch = raw_ts / 1e9
+    #     ut_seconds = seconds_since_epoch % 86400
+    #     return round(ut_seconds, 6)
+
+    if iso_ts:
+        # Parses 2025-11-08T08:50:27.000425
+        dt = datetime.fromisoformat(iso_ts)
+        # Calculate seconds since the start of that specific day
+        ut_seconds = (dt.hour * 3600) + (dt.minute * 60) + dt.second + (dt.microsecond / 1e6)
+        return ut_seconds
 
 # Conversions from 3-letter month to 2-digit month for parsing telemetry file names
 month_dict = {
@@ -136,7 +290,7 @@ def get_path_to_night(night):
 
 
 
-def get_fits_filename(night, set_num, image_num):
+def get_fits_filename(night, set_num, image_num, iso_ts=None):
     """
     Get the fits filename for a given night, set, and image number
     
@@ -146,7 +300,8 @@ def get_fits_filename(night, set_num, image_num):
     :type set: int
     :param image: The image number of the observation
     :type image: int
-    
+    :param iso_ts: The ISO format timestamp from the telemetry file. Only needed for nights with weird image paths (currently just 2025nov08) where the filename includes the timestamp instead of the set and image number.
+    :type iso_ts: str
     :return: The fits filename for the given night, set, and image number
     :rtype: str
     """
@@ -158,7 +313,15 @@ def get_fits_filename(night, set_num, image_num):
     two_digit_year = night[2:4]
     two_digit_month = _convert_month(night[4:7])
     two_digit_day = night[7:9]
-    return f"i{two_digit_year}{two_digit_month}{two_digit_day}_a{set_num:03d}{image_num:03d}.fits"
+
+    if night not in nights_with_weird_image_paths:
+        filename = f"i{two_digit_year}{two_digit_month}{two_digit_day}_a{set_num:03d}{image_num:03d}.fits"
+    elif night == "2025nov08":
+        four_digit_year = night[0:4]
+        UT_seconds = convert_to_ut_seconds(iso_ts=iso_ts)
+        filename = f"OI.{four_digit_year}{two_digit_month}{two_digit_day}.{round(UT_seconds, 2)}.fits"
+
+    return filename
 
 def get_path_to_telemetry_dir(night):
     """
@@ -220,7 +383,13 @@ def get_path_to_image(night, set_num, image_num):
 
     path_to_night = get_path_to_night(night)
     fits_filename = get_fits_filename(night, set_num, image_num)
-    return path_to_night / "raw" / fits_filename
+
+    if night not in nights_with_weird_image_paths:
+        fits_path = path_to_night / "raw" / fits_filename
+    elif night == "2025nov08":
+        fits_path = path_to_night / "raw" / "cal" / fits_filename
+    return fits_path
+
 
 def get_image_path_from_telemetry_path(telemetry_path):
     """
@@ -245,29 +414,25 @@ def get_image_path_from_telemetry_path(telemetry_path):
 
     return get_path_to_image(night, set_num, image_num)
 
-def read_image_telemetry(night, set_num, image_num, verbose=False):
+def read_image_telemetry(path_to_telemetry_dir, verbose=False):
     """
     Read in the telemetry associated with a given image from the place
     it's stored on the MULab filesystem
     
-    :param night: The night of the observation, in the format 'YYYYmonDD', e.g. '2026mar04
-    :type night: str'
-    :param set: The set number of the observation
-    :type set: int
-    :param image: The image number of the observation
-    :type image: int
-    
-    """
-    
-    _check_night_param(night)
-    _check_set_param(set_num)
-    _check_image_param(image_num)
+    :param path_to_telemetry_dir: The path to the telemetry directory
+    :type path_to_telemetry_dir: pathlib.Path
+    :param verbose: Whether to print verbose output
+    :type verbose: bool
+    :return: A list of the telemetry file paths associated with the given image
+    :rtype: list
 
-    path_to_image = get_path_to_image_telemetry(night, set_num, image_num)
-    if verbose: print("Looking at telemetry from", path_to_image)
+    """
+    assert(isinstance(path_to_telemetry_dir, Path)), "path_to_telemetry_dir must be a pathlib.Path"
+
+    if verbose: print("Looking at telemetry from", path_to_telemetry_dir)
 
     # Get the files in the telemetry folder for this image
-    telem_files = [file for file in path_to_image.glob("*")]
+    telem_files = [file for file in path_to_telemetry_dir.glob("*")]
     if verbose: 
         for file in telem_files:
             print(file)
@@ -294,6 +459,29 @@ def get_header(night, set_num, image_num, verbose=False):
 
     hdr_tbl = rao.build_observation_table(get_path_to_image(night, set_num, image_num), "OSIRIS", verbose=True)
     return hdr_tbl
+
+def get_telemetry(night, set_num, image_num, verbose=False):
+    """
+    Get the telemetry file paths for a given night, set, and image number
+
+    :param night: The night of the observation, in the format 'YYYYmonDD', e.g. '2026mar04
+    :type night: str
+    :param set_num: The set number of the observation
+    :type set_num: int
+    :param image_num: The image number of the observation
+    :type image_num: int
+    :param verbose: Whether to print verbose output
+    :type verbose: bool
+    :return: A list of the telemetry file paths associated with the given night, set, and image number
+    :rtype: list
+    """
+
+    _check_night_param(night)
+    _check_set_param(set_num)
+    _check_image_param(image_num)
+
+    path_to_telemetry = get_path_to_image_telemetry(night, set_num, image_num)
+    return read_image_telemetry(path_to_telemetry, verbose=verbose)
 
 def load_straingauge_data(telem_files):
     """
@@ -322,21 +510,77 @@ def load_dtt_data(telem_files):
     downtiptilt = np.load(telem_files[dtt_loc])
     return downtiptilt
 
+def has_ocam2k_data(telem_files):
+    """
+    Check if a list of telemetry files contains ocam2k data
+    
+    :param telem_files: List of telemetry files (strings or Path objects)
+    :type telem_files: list
+    :return: True if the list contains a file with 'ocam2k' in its name/path, False otherwise
+    :rtype: bool
+    """
+    
+    return any('ocam2k' in str(f) for f in telem_files)
+
 def load_ocam2k_data(telem_files):
     """
-    Load ocam2k data from a list of telemetry files
+    Load ocam2k data from a list of telemetry files.
+    
+    Searches the provided list for the first file containing 'ocam2k' 
+    in its name/path and loads it using numpy.
 
-    :param telem_files: List of telemetry files
+    :param telem_files: List of telemetry files (strings or Path objects)
     :type telem_files: list
     :return: Ocam2k data
-    :rtype: numpy.ndarray
+    :rtype: numpy.lib.npyio.NpzFile from ocam2k telemetry
+    :raises ValueError: If the input list is empty or the file cannot be loaded.
+    :raises FileNotFoundError: If no matching file is found in the list, 
+                               or if the file does not exist on disk.
+    """
+    
+    # 1. Check if the list is empty or None
+    if not telem_files:
+        raise ValueError("The provided telem_files list is empty or invalid.")
+
+    # 2. Find the first file matching 'ocam2k'
+    # next() grabs the first match. If no match is found, it returns None.
+    ocam2k_file = next((f for f in telem_files if 'ocam2k' in str(f)), None)
+
+    # Handle the case where the string isn't found in any filenames
+    if ocam2k_file is None:
+        raise FileNotFoundError(
+            "Could not find any file containing 'ocam2k' in the provided telemetry list."
+        )
+
+    # 3. Safely attempt to load the numpy array
+    try:
+        ocam2k = np.load(ocam2k_file)
+        return ocam2k
+        
+    except FileNotFoundError:
+        # The file was in the string list, but doesn't actually exist on the hard drive
+        raise FileNotFoundError(
+            f"The file '{ocam2k_file}' was in the list, but does not exist on disk."
+        )
+    except (OSError, ValueError) as e:
+        # The file exists, but isn't a valid .npy or .npz file, or is corrupted
+        raise ValueError(
+            f"Failed to load numpy data from '{ocam2k_file}'. Original error: {e}"
+        )
+
+def has_four_lgs_data(telem_file):
+    """
+    Check if a numpy.lib.npyio.NpzFile file contains data for all four LGS
+
+    :param telem_file: The numpy.lib.npyio.NpzFile to check
+    :type telem_file: numpy.lib.npyio.NpzFile
+    :return: True if the file contains data for all four LGS, False otherwise
+    :rtype: bool
     """
 
-    ocam2k_filename_loc = np.where(np.array([file if 'ocam2k' in str(file) else None for file in telem_files]) != None)[0][0]
-    ocam2k = np.load(telem_files[ocam2k_filename_loc])
-    return ocam2k
+    return all(get_ocam2k_intensity_key(i) in telem_file.files for i in range(1, 5))
 
-def get_ocam2k_key(i):
+def get_ocam2k_intensity_key(i):
     """
     Get the key corresponding to WFS i in the ocam2k telemetry data. For example,
     for i=1, return "SHWFS1SubAper
@@ -474,7 +718,7 @@ def plot_KAPA_subapertures_with_data(data, norm=None, cmap=None, cbar_label=None
     
     # Get mapping
     sensor_map = get_wfs_index_map()
-    subap_map = _load_subap_map()
+    subap_map = load_subap_map()
 
     # Setup default colormap
     if cmap == None:
@@ -532,7 +776,7 @@ def compute_median_intensities(data, thresh=20):
     median_unlit_intensity = np.median(unlit_data)
 
     # Return final values
-    return median_unlit_intensity, 
+    return median_unlit_intensity, median_lit_intensity
 
 
 def compute_aperture_wise_electron_stats(ocam2k, hdr_tbl):
@@ -540,16 +784,23 @@ def compute_aperture_wise_electron_stats(ocam2k, hdr_tbl):
     Compute the mean and standard deviation of the number of electrons read per frame
     for each subaperture across all 4 WFSs. The mean and standard deviation are
     returned as two numpy arrays with shape (4, 304) and units of electrons
+
+    :param ocam2k: The ocam2k telemetry data loaded from the .npy file, as a numpy.lib.npyio.NpzFile
+    :type ocam2k: numpy.lib.npyio.NpzFile
+    :param hdr_tbl: The header table loaded from the observed image fits file, as an astropy Table
+    :type hdr_tbl: astropy.table.Table
+    :return: A tuple of (sensor_mean_electrons, sensor_stds_electrons) where each is a numpy array with shape (4, 304) and units of electrons per read of the mean and standard deviation respectively
+    :rtype: tuple of (numpy.ndarray, numpy.ndarray)
     """
 
     # Verify inputs
     assert(isinstance(ocam2k, dict)), "ocam2k must be a dictionary"
     for i in range(1, 5):
-        key = get_ocam2k_key(i)
+        key = get_ocam2k_intensity_key(i)
         assert(key in ocam2k), f"ocam2k must contain key {key}"
         assert(isinstance(ocam2k[key], np.ndarray)), f"ocam2k[{key}] must be a numpy array"
         assert(ocam2k[key].ndim == 3), f"ocam2k[{key}] must be a 3D numpy array with shape (num_frames, 20, 20)"
-    assert(isinstance(hdr_tbl, pd.DataFrame)), "hdr_tbl must be a pandas DataFrame"
+    assert(isinstance(hdr_tbl, Table)), "hdr_tbl must be an astropy Table"
     assert('lgs_wfs_rate' in hdr_tbl.columns), "hdr_tbl must contain column 'lgs_wfs_rate', the frame rate of the camera"
     assert('t_exposure_start' in hdr_tbl.columns), "hdr_tbl must contain column 't_exposure_start', the start time of the exposure"
 
@@ -558,7 +809,7 @@ def compute_aperture_wise_electron_stats(ocam2k, hdr_tbl):
     sensor_stds_electrons = []
     for i in range(1, 5):
         # Get adus, fluxes, and electrons for this wfs
-        adus = ocam2k[get_ocam2k_key(i)] * u.adu
+        adus = ocam2k[get_ocam2k_intensity_key(i)] * u.adu
         electrons = ku.convert_adu_to_photo_electrons(adus, date=Time(hdr_tbl["t_exposure_start"][0]), mode="KAPA")
         sensor_mean_electrons.append(electrons.mean(axis=0))
         sensor_stds_electrons.append(electrons.std(axis=0))

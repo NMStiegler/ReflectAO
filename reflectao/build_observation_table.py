@@ -145,7 +145,10 @@ def build_observation_table(
         row_vals['t_exposure_duration'] = inst.get_exposure_duration(hdr) * u.s
         row_vals['t_int'] = inst.get_integration_time_per_coadd(hdr) * u.s
         row_vals['num_coadds'] = inst.get_number_of_coadds(hdr)
-        row_vals['wavelength'] = (inst.get_central_wavelength(hdr) * u.um).to(u.nm)
+        # Check if t_exposure_duration matches t_int * num_coadds
+        if row_vals['t_exposure_duration'] - row_vals['t_int'] * row_vals['num_coadds'] >= 0.1 * u.s:
+            if verbose: print(f"Warning: for file {p}, t_exposure_duration ({row_vals['t_exposure_duration']}) does not match t_int * num_coadds ({row_vals['t_int'] * row_vals['num_coadds']})")
+        row_vals['wavelength'] = (inst.get_central_wavelength(hdr) * u.um).to(u.nm) if inst.get_central_wavelength(hdr) is not None else np.ma.masked
         row_vals['filter_name'] = inst.get_filter_name(hdr)
         row_vals['airmass'] = inst.get_airmass(hdr)
         row_vals['zenith_angle'] = (np.arccos(1.0 / float(hdr['AIRMASS'])) * u.rad).to(u.deg)

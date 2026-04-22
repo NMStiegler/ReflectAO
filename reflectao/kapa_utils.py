@@ -10,6 +10,17 @@ import numpy as np
 from astropy import units as u
 from astropy import time
 
+# List of nights with telemetry available
+kapa_night_list = ["2025nov06",
+                   "2025nov08",
+                   "2025dec04",
+                   "2025dec06",
+                   "2026feb26",
+                   "2026feb28",
+                   "2026jan12",
+                   "2026jan31",
+                   "2026mar04"]
+
 def get_wfso1_gain(date, mode):
     """
     Get the WFSO1 gain for a given mode and date. This is the gain of the OCAM2k detector, which is how many electrons cascade out of a single photoelectron. This is not the same as the system gain, which is how many electrons correspond to one ADU (count) on the detector.
