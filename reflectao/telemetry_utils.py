@@ -36,7 +36,7 @@ good_kapa_night_list = ["2025nov06",
 # Some nights didn't record t_exposure_duration right. Keeping track
 nights_with_exposure_duration_issues = [
     "2025nov06", # All images have t_exposure_duration that is much longer than t_int * num_coadds <(5000.0 s) does not match t_int * num_coadds (4.425 s)>
-    "2025dec04", # Likewise here
+    "2025dec04", # Likewise here, although I think it was a unit conversion error because everything is 5x longer than it should be
 ]
 
 # Some nights have data stored in a slightly different format than usual
