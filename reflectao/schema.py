@@ -293,6 +293,20 @@ SCHEMA = (
         name="T_tube",
         unit="°C",
         meaning="Temperature inside the telescope tube",
+    ),
+
+    # To do with telemetry data
+    ColumnDef(
+        name="telemetry_file_path",
+        unit="string",
+        meaning="Path to the telemetry data file",
+    ),
+
+    # To do with weather data
+    ColumnDef(
+        name="weather_file_path",
+        unit="string",
+        meaning="Path to the weather data file",
     )
 )
 
