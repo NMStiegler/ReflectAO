@@ -61,8 +61,8 @@ def _get_kai_instrument(instrument_name):
 def build_observation_table(
     fits_paths,
     instrument,
-    telemetry_path=None,
-    weather_path=None,
+    telemetry_paths=None,
+    weather_paths=None,
     table=None,
     verbose=False
 ):
@@ -74,12 +74,12 @@ def build_observation_table(
     :type fits_paths: str or pathlib.Path or list
     :param instrument: Instrument identifier string (e.g. "OSIRIS").
     :type instrument: str
-    :param telemetry_path: Optional path to already-downloaded telemetry.
+    :param telemetry_paths: Optional paths to already-downloaded telemetry.
         TODO: auto-discovery / downloading is not implemented in this slice.
-    :type telemetry_path: str or pathlib.Path, optional
-    :param weather_path: Optional path to already-downloaded weather data.
+    :type telemetry_paths: str or pathlib.Path, optional
+    :param weather_paths: Optional paths to already-downloaded weather data.
         TODO: auto-discovery / downloading is not implemented in this slice.
-    :type weather_path: str or pathlib.Path, optional
+    :type weather_paths: str or pathlib.Path, optional
     :param table: Optional existing observation table to extend.
         If provided, it must already contain all schema columns.
     :type table: astropy.table.Table, optional
@@ -91,16 +91,14 @@ def build_observation_table(
     :rtype: astropy.table.Table
     """
 
-    # TODO: Implement loading telemetry and weather data 
-    _ = telemetry_path
-    _ = weather_path
-
     # Use KAI to read the data we want from our FITS headers
     inst = _get_kai_instrument(instrument)
 
     # Make sure we end up with a list of paths regardless of what
     # was passed in
-    paths = _normalize_paths(fits_paths)
+    fits_paths = _normalize_paths(fits_paths)
+    telemetry_paths = _normalize_paths(telemetry_paths) if telemetry_paths is not None else []
+    weather_paths = _normalize_paths(weather_paths) if weather_paths is not None else []
     
     # Setup the table to add to. If no table is provided, create a new one.
     if table is None:
@@ -110,7 +108,10 @@ def build_observation_table(
         out = table
 
     # Add a row to the table for each image, pointed to by a path in our list
-    for p in paths:
+    for index, p in enumerate(fits_paths):
+        weather_file = weather_paths[index] if index < len(weather_paths) else np.ma.masked
+        telemetry_file = telemetry_paths[index] if index < len(telemetry_paths) else np.ma.masked
+
         # Get the fits header for the current image
         hdr = fits.getheader(p)
 
@@ -202,6 +203,12 @@ def build_observation_table(
         except KeyError: pass
         try: row_vals['T_tube'] = inst.get_tube_temperature(hdr) * u.deg_C
         except KeyError: pass
+
+        # Telemetry handling
+        row_vals['telemetry_file_path'] = telemetry_file
+
+        # Weather handling
+        row_vals['weather_file_path'] = weather_file
 
         # Calculate atm parameters
         # fried, turbpro, windspds, winddrcts, _, _, _, _, _, _ = estimate_on_sky_conditions(sky_file, 
