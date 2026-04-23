@@ -17,6 +17,7 @@ from reflectao import kapa_utils as ku
 import reflectao as rao
 import astropy.units as u
 from astropy.time import Time
+from astropy.table import Table
 import paarti.utils.maos_utils as mu
 
 ### Useful References ###
@@ -35,6 +36,7 @@ good_kapa_night_list = ["2025nov06",
 # Some nights didn't record t_exposure_duration right. Keeping track
 nights_with_exposure_duration_issues = [
     "2025nov06", # All images have t_exposure_duration that is much longer than t_int * num_coadds <(5000.0 s) does not match t_int * num_coadds (4.425 s)>
+    "2025dec04", # Likewise here
 ]
 
 # Some nights have data stored in a slightly different format than usual
@@ -50,6 +52,7 @@ nights_with_weird_image_paths = [
 # (ensuring closed loop). I tried to be generous on the closed loop criterion
 # so this might not be the *best* telemetry
 # Data generated from find_telemetry_files_in_LTAO.ipynb (currently in /u/nstieg/work/ao/keck/kapa/telemetry/)
+# This is data and should not be autocorrected by GitHub Copilot or other AI tools
 good_kapa_img_wfs_telemetry = {
     "2025nov06": {
         1: [114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159]
@@ -63,7 +66,7 @@ good_kapa_img_wfs_telemetry = {
         7: [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13],
         8: [2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123],
     },
-    "2026dec06": {
+    "2025dec06": {
         1: [2, 12, 14, 20, 21, 25, 42, 50, 53, 55],
         3: [8],
         4: [5, 6, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 25, 28, 29, 30, 31, 32],
@@ -287,8 +290,6 @@ def get_path_to_night(night):
     _check_night_param(night)
 
     return get_data_path() / night
-
-
 
 def get_fits_filename(night, set_num, image_num, iso_ts=None):
     """
@@ -732,7 +733,7 @@ def plot_KAPA_subapertures_with_data(data, norm=None, cmap=None, cbar_label=None
     # Put data on the plot
     for i in range(4):
         ax = axs[i // 2, i % 2]
-        im = ax.imshow(data, norm=norm, cmap=cmap)
+        im = ax.imshow(data[sensor_map[i]], norm=norm, cmap=cmap)
         ax.set_title(f"SHWFS {sensor_map[i]}")
         ax.set_xlabel("Subaperture x index")
         ax.set_ylabel("Subaperture y index")
@@ -748,12 +749,15 @@ def plot_KAPA_subapertures_with_data(data, norm=None, cmap=None, cbar_label=None
 
 ### Data Processing Helper Functions ###
 
-def compute_median_intensities(data, thresh=20):
+def compute_median_values(data, thresh=20):
     """
-    Compute the median lit subaperture and unlit subaperture intensity across
+    Compute median lit subaperture and unlit subaperture values across
     all 304 subapertures on a single WFS. The cutoff between the lit and unlit
     subpopulations are determined by the thresh parameter which defines a 
-    percentile above and below which to separate the data.
+    percentile above and below which to separate the data. Values here could be
+    intensities, electron counts, or standard deviation of electron counts, etc.
+    Just some data defined across all subapertures which are defined into a 
+    high and low population
     
     :param data: A numpy array or list of subaperture intensities for a single WFS, with length 304
     :param thresh: The percentile threshold for separating lit and unlit subapertures
@@ -778,6 +782,46 @@ def compute_median_intensities(data, thresh=20):
     # Return final values
     return median_unlit_intensity, median_lit_intensity
 
+def compute_median_values_for_all_wfs(data, thresh=20):
+    """
+    Compute median lit subaperture and unlit subaperture values across
+    all 304 subapertures on all 4 WFSs. The cutoff between the lit and unlit
+    subpopulations are determined by the thresh parameter which defines a 
+    percentile above and below which to separate the data. Values here could be
+    intensities, electron counts, or standard deviation of electron counts, etc.
+    Just some data defined across all subapertures which are defined into a 
+    high and low population
+
+    :param data: A list of numpy arrays, each containing the data for a single WFS with length 304, or a numpy array of shape (4, 304) where the first dimension corresponds to the WFS number and the second dimension corresponds to the subapertures. 
+    :param thresh: The percentile threshold for separating lit and unlit subapertures
+    :type thresh: int or float
+    :return: A tuple of (median_unlit_values, median_lit_values) where each is a list of length 4 containing the median unlit and lit values for each WFS respectively
+    :rtype: tuple of (list, list)
+
+    """
+    
+    # Check params
+    if isinstance(data, list):
+        assert len(data) == 4, "data must be a list of 4 numpy arrays"
+        for d in data:
+            assert len(d) == 304, "each array in data must have length 304"
+    elif isinstance(data, np.ndarray):
+        assert data.shape == (4, 304), "data must be a numpy array of shape (4, 304)"
+    else:
+        raise TypeError("data must be a list of 4 numpy arrays or a numpy array of shape (4, 304)")
+    assert isinstance(thresh, (int, float)), "thresh must be an int or float"
+    assert thresh >= 0 and thresh <= 100, "thresh must be a percentile between 0 and 100"
+
+    # Loop over all 4 WFSs and compute median values for each
+    median_unlit_values = []
+    median_lit_values = []    
+    for wfs_number in range(1, 5):
+        wfs_index = wfs_number - 1
+        median_unlit_val, median_lit_val = compute_median_values(data[wfs_index], thresh)
+        median_unlit_values.append(median_unlit_val)
+        median_lit_values.append(median_lit_val)
+
+    return median_unlit_values, median_lit_values
 
 def compute_aperture_wise_electron_stats(ocam2k, hdr_tbl):
     """
@@ -794,12 +838,13 @@ def compute_aperture_wise_electron_stats(ocam2k, hdr_tbl):
     """
 
     # Verify inputs
-    assert(isinstance(ocam2k, dict)), "ocam2k must be a dictionary"
+    assert(isinstance(ocam2k, np.lib.npyio.NpzFile)), "ocam2k must be a dictionary"
     for i in range(1, 5):
         key = get_ocam2k_intensity_key(i)
         assert(key in ocam2k), f"ocam2k must contain key {key}"
         assert(isinstance(ocam2k[key], np.ndarray)), f"ocam2k[{key}] must be a numpy array"
-        assert(ocam2k[key].ndim == 3), f"ocam2k[{key}] must be a 3D numpy array with shape (num_frames, 20, 20)"
+        assert(ocam2k[key].ndim == 2), f"ocam2k[{key}] must be a 2D numpy array with shape (num_frames, 304), got shape {ocam2k[key].shape}"
+        assert(ocam2k[key].shape[1] == 304), f"ocam2k[{key}] must have shape (num_frames, 304), got shape {ocam2k[key].shape}"
     assert(isinstance(hdr_tbl, Table)), "hdr_tbl must be an astropy Table"
     assert('lgs_wfs_rate' in hdr_tbl.columns), "hdr_tbl must contain column 'lgs_wfs_rate', the frame rate of the camera"
     assert('t_exposure_start' in hdr_tbl.columns), "hdr_tbl must contain column 't_exposure_start', the start time of the exposure"
