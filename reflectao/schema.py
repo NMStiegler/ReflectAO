@@ -9,7 +9,7 @@ Missing values are represented using **masked** table entries (not Python
 quantities, etc.) while still marking missing data in a standard way.
 """
 
-from astropy.table import MaskedColumn, Table
+from astropy.table import MaskedColumn, QTable
 
 
 class ColumnDef(object):
@@ -334,25 +334,48 @@ def new_empty_observation_table(n_rows=0, schema=SCHEMA):
     :type n_rows: int
     :param schema: Column definitions to use.
     :type schema: iterable
-    :return: Table with all schema columns present, in schema order.
-    :rtype: astropy.table.Table
+    :return: QTable with all schema columns present, in schema order.
+    :rtype: astropy.table.QTable
     """
-    tbl = Table()
+    tbl = QTable()
 
     # Table-level metadata is useful for provenance and future schema migration.
     tbl.meta["reflectao_schema_version"] = 0
     tbl.meta["reflectao_schema_source"] = "docs/relevant_fields.md"
 
     for col in schema:
-        # For now, we use dtype=object because we are not yet enforcing per-field
-        # numeric/string/quantity typing. The important behavior for this slice
-        # is: (1) missing values are masked, and (2) columns always exist.
-        #
-        # Later, we can tighten dtypes field-by-field once we are confident in
-        # the instrument keyword conventions and unit conversions.
-        tbl[col.name] = MaskedColumn([None] * n_rows, mask=[True] * n_rows, dtype=object)
+        # 1. Infer the correct data type from the unit string
+        unit_lower = str(col.unit).lower()
+        if "string" in unit_lower or "timestamp" in unit_lower:
+            col_dtype = str
+        elif "int" in unit_lower:
+            col_dtype = int
+        elif "boolean" in unit_lower:
+            col_dtype = bool
+        else:
+            col_dtype = float  # Default to float for physical measurements (deg, m, Pa, etc.)
+
+        # 2. Setup initial dummy data based on type so Astropy doesn't fall back to 'object'
+        if n_rows == 0:
+            data = []
+        else:
+            if col_dtype == str:
+                data = [""] * n_rows
+            elif col_dtype == bool:
+                data = [False] * n_rows
+            else:
+                data = [0.0] * n_rows
+        
+        mask = [True] * n_rows if n_rows > 0 else []
+
+        # 3. Create the strongly-typed column
+        tbl[col.name] = MaskedColumn(data, mask=mask, dtype=col_dtype)
         tbl[col.name].meta["meaning"] = col.meaning
-        if col.unit is not None:
+        
+        # 4. Only assign valid physical units to the column metadata
+        # (Astropy will complain if you try to assign "string" or "boolean" as a unit)
+        non_physical_units = ["string", "int", "boolean", "utc timestamp", "dimensionless", "none"]
+        if col.unit is not None and unit_lower not in non_physical_units:
             tbl[col.name].meta["unit"] = col.unit
 
     return tbl
@@ -365,8 +388,8 @@ def validate_table_has_schema(table, schema=SCHEMA, allow_extra_columns=True):
     This is intentionally a strict, readable check: it does not attempt to infer
     or rename columns. If a required column is missing, we raise a ValueError.
 
-    :param table: Table to validate.
-    :type table: astropy.table.Table
+    :param table: QTable to validate.
+    :type table: astropy.table.QTable
     :param schema: Schema definitions.
     :type schema: iterable
     :param allow_extra_columns: If True, allow columns beyond the schema; only

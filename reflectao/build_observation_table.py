@@ -16,9 +16,9 @@ import numpy as np
 from astropy.io import fits
 from astropy.time import Time
 from astropy import units as u
+from astropy.table import vstack, QTable
 
-from .schema import new_empty_observation_table, validate_table_has_schema
-
+from .schema import new_empty_observation_table, validate_table_has_schema, schema_column_names, SCHEMA
 
 def _normalize_paths(fits_paths):
     """
@@ -101,11 +101,21 @@ def build_observation_table(
     weather_paths = _normalize_paths(weather_paths) if weather_paths is not None else []
     
     # Setup the table to add to. If no table is provided, create a new one.
-    if table is None:
-        out = new_empty_observation_table(n_rows=0)
-    else:
+    if table is not None:
         validate_table_has_schema(table)
-        out = table
+
+    # Helper to clean up the try/except blocks. 
+    # Fetches the value, optionally applies a unit, and returns masked on failure.
+    def _safe_get(func, hdr, unit=None):
+        try:
+            val = func(hdr)
+            return val * unit if unit is not None else val
+        except KeyError:
+            return np.ma.masked
+    
+    # Accumulate all new rows in a list of dictionaries first
+    new_rows = []
+    expected_cols = schema_column_names(SCHEMA) # <-- Grab the full list of schema columns
 
     # Add a row to the table for each image, pointed to by a path in our list
     for index, p in enumerate(fits_paths):
@@ -114,13 +124,10 @@ def build_observation_table(
 
         # Get the fits header for the current image
         hdr = fits.getheader(p)
-
-       # Set up a dictionary to hold the values we'll add for this row. Start
-       # everything as a masked value just to be safe
-        row_vals = {name: np.ma.masked for name in out.colnames}
+        row_vals = {col: np.ma.masked for col in expected_cols}
 
         ############# Add metadata from this row's FITS file #############
-        # System information
+        ### System information ###
         row_vals["image_path"] = str(p) # Path to the FITS file
         
         ### Telescope / instrument / set information ###
@@ -158,6 +165,12 @@ def build_observation_table(
 
         ### AO system information ###
         row_vals['lgs_wfs_rate'] = inst.get_lgs_wfs_rate(hdr) * u.Hz
+
+        # Initialize TT variables to masked to ensure they always exist in the schema
+        row_vals['OSIRIS_tt_sensor'] = np.ma.masked
+        row_vals['tt_wfs_rate'] = np.ma.masked
+        row_vals['tt_wfs_centroid_gain'] = np.ma.masked
+
         if inst.get_instrument_name(hdr) == "OSIRIS": # Get tip tilt / NGS sensor information, which can differ on OSIRIS/Keck I
             TT_sensor = inst.get_tip_tilt_wfs_name(hdr) # Either STRAP or NIRTTS (TRICK)
             row_vals['OSIRIS_tt_sensor'] = TT_sensor
@@ -168,10 +181,10 @@ def build_observation_table(
             elif TT_sensor == "NIRTTS":
                 # Not sure how to get the frame rate for TRICK
                 row_vals['tt_wfs_centroid_gain'] = inst.get_TRICK_centroid_gain(hdr)
+        
         row_vals['lgs_rms_wfe'] = inst.get_lgs_rms_wfe(hdr) * u.nm
         row_vals['lgs_layer_alt'] = inst.get_lgs_layer_altitude(hdr) * u.m
-        try: row_vals['ngs_fwhm'] = inst.get_ngs_fwhm(hdr) * u.arcsec # Early telemetry might not have this
-        except KeyError: pass
+        row_vals['ngs_fwhm'] = _safe_get(inst.get_ngs_fwhm, hdr, u.arcsec)
         row_vals['ngs_wavelength'] = (inst.get_ngs_wavelength(hdr) * u.m).to(u.nm)
         row_vals['reconstructor_name'] = inst.get_reconstructor_name(hdr)
         row_vals['dm_gain'] = inst.get_dm_gain(hdr)
@@ -185,36 +198,45 @@ def build_observation_table(
         ### Weather information ###
         # Early telemetry might not have all these parameters, we can 
         # get them from the weather files hopefully
-        try: row_vals['humidity_dome'] = inst.get_dome_humidity(hdr)
-        except KeyError: pass
-        try: row_vals['T_dome_air'] = inst.get_dome_temperature(hdr) * u.deg_C
-        except KeyError: pass
-        try: row_vals['humidity_outside'] = inst.get_outside_humidity(hdr)
-        except KeyError: pass
-        try: row_vals['T_outside_air'] = inst.get_outside_temperature(hdr) * u.deg_C
-        except KeyError: pass
-        try: row_vals['P_barometric'] = (inst.get_barometric_pressure(hdr) * u.hPa).to(u.Pa)
-        except KeyError: pass
-        try: row_vals['wind_direction'] = inst.get_wind_direction(hdr) * u.deg # <-- What reference angle?
-        except KeyError: pass
-        try: row_vals['wind_speed'] = inst.get_wind_speed(hdr) * u.m / u.s # <-- What unit is this logged as?
-        except KeyError: pass
-        try: row_vals['t_weather_sample'] = inst.get_weather_sample_timestamp_string(hdr)
-        except KeyError: pass
-        try: row_vals['T_tube'] = inst.get_tube_temperature(hdr) * u.deg_C
-        except KeyError: pass
+        row_vals['humidity_dome'] = _safe_get(inst.get_dome_humidity, hdr)
+        row_vals['T_dome_air'] = _safe_get(inst.get_dome_temperature, hdr, u.deg_C)
+        row_vals['humidity_outside'] = _safe_get(inst.get_outside_humidity, hdr)
+        row_vals['T_outside_air'] = _safe_get(inst.get_outside_temperature, hdr, u.deg_C)
+        row_vals['P_barometric'] = _safe_get(inst.get_barometric_pressure, hdr, u.hPa)
+        row_vals['P_barometric'] = row_vals['P_barometric'].to(u.Pa) if not np.ma.is_masked(row_vals['P_barometric']) else np.ma.masked
+       
+        row_vals['wind_direction'] = _safe_get(inst.get_wind_direction, hdr, u.deg)
+        row_vals['wind_speed'] = _safe_get(inst.get_wind_speed, hdr, u.m / u.s)
+        row_vals['t_weather_sample'] = _safe_get(inst.get_weather_sample_timestamp_string, hdr)
+        row_vals['T_tube'] = _safe_get(inst.get_tube_temperature, hdr, u.deg_C)
 
         # Telemetry handling
-        row_vals['telemetry_file_path'] = telemetry_file
+        row_vals['telemetry_file_path'] = str(telemetry_file) if (telemetry_file is not np.ma.masked and telemetry_file is not None) else np.ma.masked
 
         # Weather handling
-        row_vals['weather_file_path'] = weather_file
+        row_vals['weather_file_path'] = str(weather_file) if (weather_file is not np.ma.masked and weather_file is not None) else np.ma.masked
+
+        ### File paths ###
 
         # Calculate atm parameters
         # fried, turbpro, windspds, winddrcts, _, _, _, _, _, _ = estimate_on_sky_conditions(sky_file, 
         #                                                                                    sky_folder)
 
         # Put in the table
-        out.add_row(row_vals)
+        new_rows.append(row_vals)
+
+    ### Make the table now from the list of dictionaries
+    if not new_rows:
+        return table if table is not None else new_empty_observation_table(n_rows=0)
+
+    # Build an intermediate table from the new rows. By forcing masked=True, 
+    # Astropy properly creates MaskedColumns for any np.ma.masked values.
+    new_table = QTable(rows=new_rows, masked=True)
+    
+    # If a table was passed in, stack them vertically. 
+    if table is not None:
+        out = vstack([table, new_table], join_type='exact')
+    else:
+        out = new_table
 
     return out

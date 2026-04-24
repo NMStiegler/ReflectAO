@@ -15,18 +15,28 @@ import paarti.utils.maos_utils as mu
 
 # Loop through all good images in all sets for all nights to build a big header
 # table we can use to collect all information
+
+# Get all the FITS file and telemetry file paths
 count_of_all_images = 0 # Count how many good images we have
-hdr_tbl = rao.schema.new_empty_observation_table()
+fits_paths = []
+telemetry_paths = []
 for night in tu.good_kapa_night_list:
     set_numbers = tu.good_kapa_img_wfs_telemetry[night].keys()
     for set_number in set_numbers:
         frame_numbers = tu.good_kapa_img_wfs_telemetry[night][set_number]
         for frame_number in frame_numbers:
             print(f"Configuring night {night}, set {set_number}, frame {frame_number}...")
+            # if count_of_all_images > 10:
+            #     print(f"Reached 10 images, stopping early for testing purposes. Remove this condition to process all images.")
+            #     break
             count_of_all_images += 1
             fits_path = tu.get_path_to_image(night, set_number, frame_number)
             telemetry_path = tu.get_path_to_image_telemetry(night, set_number, frame_number)
-            hdr_tbl = rao.build_observation_table(fits_path, instrument="OSIRIS", telemetry_paths=telemetry_path, table=hdr_tbl, verbose=True)
+            fits_paths.append(fits_path)
+            telemetry_paths.append(telemetry_path)
+
+# Build the table
+hdr_tbl = rao.build_observation_table(fits_paths, instrument="OSIRIS", telemetry_paths=telemetry_paths, verbose=True)
 
 print(f"Total number of good images to analyze: {count_of_all_images}")
 print("-" * 10, f"Done creating table at {Time.now().to_datetime()}, now analyzing files", "-" * 10)
@@ -43,12 +53,12 @@ bright_std_electrons = [] # Collect the median of the per subaperture standard d
 def strip_units(data_list):
     return [x.to_value(u.electron) if hasattr(x, 'to_value') else x for x in data_list]
 
-for row in hdr_tbl:
+for i, row in enumerate(hdr_tbl):
     # Print info
-    print(f"Analyzing night {str(row['t_exposure_start'].to_datetime().date())}, set {row['set_number']}, frame {row['frame_number']} at {Time.now().to_datetime()}")
+    print(f"Analyzing {i} / {len(hdr_tbl)} night {str(row['t_exposure_start'].to_datetime().date())}, set {row['set_number']}, frame {row['frame_number']} at {Time.now().to_datetime()}")
 
     # Load the telemetry and fits header for that image
-    path_to_telemetry = row["telemetry_file_path"]
+    path_to_telemetry = Path(row["telemetry_file_path"])
     telem_files = tu.read_image_telemetry(path_to_telemetry, verbose=True)
     ocam2k = tu.load_ocam2k_data(telem_files)
 
@@ -89,4 +99,5 @@ for i in range(num_wfs):
     hdr_tbl[f'wfs{i}_bright_std_electrons'].unit = u.electron
 
 # Save hdr_tbl
-hdr_tbl.write("/u/nstieg/work/ao/keck/kapa/telemetry/kapa_ocam2k_read_stats.ecsv", format="ascii.ecsv", overwrite=True)
+place_to_save = "/u/nstieg/work/ao/keck/kapa/telemetry/kapa_ocam2k_read_stats.ecsv"
+hdr_tbl.write(place_to_save, format="ascii.ecsv", overwrite=True)
