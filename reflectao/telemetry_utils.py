@@ -17,7 +17,7 @@ from reflectao import kapa_utils as ku
 import reflectao as rao
 import astropy.units as u
 from astropy.time import Time
-from astropy.table import Table
+from astropy.table import Table, Row
 import paarti.utils.maos_utils as mu
 
 ### Useful References ###
@@ -37,6 +37,7 @@ good_kapa_night_list = ["2025nov06",
 nights_with_exposure_duration_issues = [
     "2025nov06", # All images have t_exposure_duration that is much longer than t_int * num_coadds <(5000.0 s) does not match t_int * num_coadds (4.425 s)>
     "2025dec04", # Likewise here, although I think it was a unit conversion error because everything is 5x longer than it should be
+    "2025dec06", # again
 ]
 
 # Some nights have data stored in a slightly different format than usual
@@ -67,32 +68,29 @@ good_kapa_img_wfs_telemetry = {
         8: [2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123],
     },
     "2025dec06": {
-        1: [2, 12, 14, 20, 21, 25, 42, 50, 53, 55],
-        3: [8],
-        4: [5, 6, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 25, 28, 29, 30, 31, 32],
-        5: [3, 5, 7, 9, 10, 11],
-        6: [2, 3, 5, 7, 8, 9, 10, 11],
+        4: [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32],
+        5: [2, 3, 5, 6, 7, 8, 9, 10, 11],
+        6: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
         7: [2, 3, 4, 5],
-        8: [2, 3, 4, 5, 7, 8, 9, 12, 13],
-        9: [2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 21, 22, 24],
+        8: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+        9: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22],
     },
     "2026feb26": {
-        0: [15, 16, 18, 37, 47, 64, 123, 136],
-        4: [5],
-        7: [10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50],
-        9: [2, 3, 4, 5, 6, 8, 9],
+        0: [15, 16, 17, 18],
+        7: [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50],
+        9: [2, 3, 4, 5, 6, 7, 8, 9],
         10: [2, 3, 4, 5, 6, 7, 8, 9],
         11: [2, 3, 4, 5, 6, 7, 8, 9],
-        12: [2, 3, 4, 5, 6, 8, 9],
+        12: [2, 3, 4, 5, 6, 7, 8, 9],
         13: [2, 3, 4, 5, 6, 7, 8, 9],
         14: [2, 3, 4, 5, 6, 7, 8, 9],
-        15: [2, 3, 5, 6, 7, 8, 9],
+        15: [2, 3, 4, 5, 6, 7, 8, 9],
         16: [2, 3, 4, 5, 6, 7, 8, 9],
         17: [2, 3, 4, 5, 6, 7, 8, 9],
-        18: [2, 3, 4, 5, 6, 7, 9],
+        18: [2, 3, 4, 5, 6, 7, 8, 9],
         19: [2, 3, 4, 5, 6, 7, 8, 9],
         20: [2, 3, 4, 5, 6, 7, 8, 9],
-        21: [2, 3, 4, 5, 6, 7, 9],
+        21: [2, 3, 4, 5, 6, 7, 8, 9],
         22: [2, 3, 4, 5, 6, 7, 8, 9],
         23: [2, 3, 4, 5, 6, 7, 8, 9],
         24: [2],
@@ -115,7 +113,6 @@ good_kapa_img_wfs_telemetry = {
         41: [3, 4, 5, 6, 7, 8, 9, 10],
         42: [2, 3, 4, 5, 6, 7, 8, 9, 10],
         43: [2, 3, 4, 5, 6, 7, 8],
-        44: [2],
     },
     "2026feb28": {
         1: [2],
@@ -845,9 +842,15 @@ def compute_aperture_wise_electron_stats(ocam2k, hdr_tbl):
         assert(isinstance(ocam2k[key], np.ndarray)), f"ocam2k[{key}] must be a numpy array"
         assert(ocam2k[key].ndim == 2), f"ocam2k[{key}] must be a 2D numpy array with shape (num_frames, 304), got shape {ocam2k[key].shape}"
         assert(ocam2k[key].shape[1] == 304), f"ocam2k[{key}] must have shape (num_frames, 304), got shape {ocam2k[key].shape}"
-    assert(isinstance(hdr_tbl, Table)), "hdr_tbl must be an astropy Table"
+    assert(isinstance(hdr_tbl, (Table, Row))), "hdr_tbl must be an astropy Table or Row"
     assert('lgs_wfs_rate' in hdr_tbl.columns), "hdr_tbl must contain column 'lgs_wfs_rate', the frame rate of the camera"
     assert('t_exposure_start' in hdr_tbl.columns), "hdr_tbl must contain column 't_exposure_start', the start time of the exposure"
+
+    # Get date of observation
+    if isinstance(hdr_tbl, Table):
+        exposure_start = hdr_tbl["t_exposure_start"][0]
+    else:
+        exposure_start = hdr_tbl["t_exposure_start"]
 
     # Compute mean and standard deviation of electrons for each subaperture across all 4 WFSs
     sensor_mean_electrons = []
@@ -855,7 +858,7 @@ def compute_aperture_wise_electron_stats(ocam2k, hdr_tbl):
     for i in range(1, 5):
         # Get adus, fluxes, and electrons for this wfs
         adus = ocam2k[get_ocam2k_intensity_key(i)] * u.adu
-        electrons = ku.convert_adu_to_photo_electrons(adus, date=Time(hdr_tbl["t_exposure_start"][0]), mode="KAPA")
+        electrons = ku.convert_adu_to_photo_electrons(adus, date=Time(exposure_start), mode="KAPA")
         sensor_mean_electrons.append(electrons.mean(axis=0))
         sensor_stds_electrons.append(electrons.std(axis=0))
     
