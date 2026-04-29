@@ -6,9 +6,10 @@ from pathlib import Path
 import reflectao as rao
 from reflectao import telemetry_utils as tu
 from astropy import units as u
+from astropy.time import Time
 
 # Pick the night to analyze
-night = tu.good_kapa_night_list[4]
+night = tu.good_kapa_night_list[5]
 print(night)
 
 # Get telemetry filenames for all images taken on this night
@@ -21,7 +22,7 @@ telemetry_files = np.array([tu.read_image_telemetry(dir_name) for dir_name in al
 
 # Check that there's telemetry data in the image telemetry folders
 num_telemetry_files_per_image = np.array([len(telem_files) for telem_files in telemetry_files])
-print(f"{night}\nNumber of telemetry files per image:\n{num_telemetry_files_per_image}")
+print(f"For {night}, number of telemetry files per image:\n{num_telemetry_files_per_image}")
 
 # Check if there is an ocam2k telemetry file for each image
 has_ocam2k_telemetry = np.array([tu.has_ocam2k_data(telem_file) for telem_file in telemetry_files])
@@ -51,9 +52,60 @@ hdr_tbl = rao.build_observation_table(image_paths, "OSIRIS", verbose=False)
 print("Length of the table is:", len(hdr_tbl), "entries")
 
 # Get the indices for images with WFE < 1000nm (closed-loop ish)
-wfe_values = np.array([datum.value for datum in hdr_tbl["lgs_rms_wfe"].data.data]) * u.nm
+wfe_values = np.array(hdr_tbl["lgs_rms_wfe"].value.tolist()) * u.nm
 closed_loop_mask = wfe_values < 1000 * u.nm
 print(f"Found {sum(closed_loop_mask)} images with RMS LGS WFE < 1000 nm.")
+
+# Define a function which tells us which sets are not good for a given date
+def date_dependent_setup_mask(set_numbers, date):
+    if date.to_datetime().date() == Time("2026-02-28").to_datetime().date():
+        return np.array(set_numbers) < 6
+    elif date.to_datetime().date() == Time("2026-03-04").to_datetime().date():
+        return np.array(set_numbers) < 5
+    elif date < Time("2026-03-04"):
+        return np.array(set_numbers) == 0 | np.array(set_numbers) == 2
+    else:
+        return np.array(set_numbers) == 0
+
+# Get mask for images with set numbers known to be darks or other non-standard images
+set_numbers = [int(num) for num in hdr_tbl['set_number']]
+dates = [Time(date) for date in hdr_tbl['t_exposure_start']]
+setup_mask = np.array([date_dependent_setup_mask(set_numbers[i], dates[i]) for i in range(len(set_numbers))])
+not_setup_mask = ~setup_mask
+print(f"Found {sum(not_setup_mask)} images with set number != 0 and != 2")
+
+# Mask everything @ ra & dec of 0 (defaults means not real images of targets)
+ra_values = np.array(hdr_tbl['target_ra'].value.tolist())
+dec_values = np.array(hdr_tbl['target_dec'].value.tolist())
+ra_mask = ra_values == 0
+dec_mask = dec_values == 0
+target_mask = ra_mask & dec_mask
+not_target_mask = ~target_mask
+print(f"Found {sum(not_target_mask)} images with target ra and dec != 0.")
+
+# And which is not at a target name of 'stow' or 'wfsblank1'
+target_names = [str(name) for name in hdr_tbl['target_name']]
+stow_mask = np.array(['stow' in str(name) for name in target_names])
+wfsblank1_mask = np.array(['wfsblank1' in str(name) for name in target_names])
+not_stow_mask = ~(stow_mask | wfsblank1_mask)
+print(f"Found {sum(not_stow_mask)} images with target name not containing 'stow' or 'wfsblank1'.")
+
+# Mask anything which has 'darks' in the set name
+set_names = [str(name) for name in hdr_tbl['set_name']]
+darks_mask = np.array(['darks' in str(name) for name in set_names])
+not_darks_mask = ~darks_mask
+print(f"Found {sum(not_darks_mask)} images with set name not containing 'darks'.")
+
+# And which don't have pinhole mask as an object name
+object_names = [str(name) for name in hdr_tbl['object_name']]
+pinhole_mask = np.array(['pinhole' in str(name) for name in object_names])
+not_pinhole_mask = ~pinhole_mask
+print(f"Found {sum(not_pinhole_mask)} images with object name not containing 'pinhole'.")
+
+# And which haven't aborted
+aborted_mask = np.array(hdr_tbl['aborted'].value.tolist())
+not_aborted_mask = ~aborted_mask
+print(f"Found {sum(not_aborted_mask)} images with aborted flag not set.")
 
 from collections import defaultdict
 
@@ -75,10 +127,13 @@ def get_set_dictionary(table):
         
     return dict(set_dict)
 
-print(f"There are {sum(four_lgs_image_mask & closed_loop_mask)} images with SHWFS4 telemetry and RMS LGS WFE < 1000 nm.")
+# Mask everything that doesn't meet the criteria
+good_mask = four_lgs_image_mask & closed_loop_mask & not_setup_mask & not_target_mask & not_darks_mask & not_stow_mask & not_aborted_mask & not_pinhole_mask
+
+print(f"There are {sum(good_mask)} images with all required criteria")
 
 # 1. Extract the subset into its own table variable
-sub_table = hdr_tbl[four_lgs_image_mask & closed_loop_mask]
+sub_table = hdr_tbl[good_mask]
 
 # Generate the dictionary
 set_frames_map = get_set_dictionary(sub_table)

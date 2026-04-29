@@ -1,6 +1,6 @@
-# Note: Fails on /g3/data/kapa/2025dec06/telemetry/IMAG/i251206_a001002.fits
 
 # Import useful packages
+import io
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -11,6 +11,7 @@ from reflectao import kapa_utils as ku
 from reflectao import telemetry_utils as tu
 import astropy.units as u
 from astropy.time import Time
+from astropy.table import QTable
 import paarti.utils.maos_utils as mu
 
 # Loop through all good images in all sets for all nights to build a big header
@@ -87,17 +88,53 @@ bright_std_arr = np.array(bright_std_electrons)
 num_wfs = 4
 for i in range(num_wfs):
     # Assign the columns
-    hdr_tbl[f'wfs{i}_dim_mean_electrons'] = dim_mean_arr[:, i]
-    hdr_tbl[f'wfs{i}_dim_std_electrons'] = dim_std_arr[:, i]
-    hdr_tbl[f'wfs{i}_bright_mean_electrons'] = bright_mean_arr[:, i]
-    hdr_tbl[f'wfs{i}_bright_std_electrons'] = bright_std_arr[:, i]
+    hdr_tbl[f'wfs{i + 1}_dim_mean_electrons'] = dim_mean_arr[:, i]
+    hdr_tbl[f'wfs{i + 1}_dim_std_electrons'] = dim_std_arr[:, i]
+    hdr_tbl[f'wfs{i + 1}_bright_mean_electrons'] = bright_mean_arr[:, i]
+    hdr_tbl[f'wfs{i + 1}_bright_std_electrons'] = bright_std_arr[:, i]
     
     # Reapply the Astropy units to the table columns directly so metadata is preserved
-    hdr_tbl[f'wfs{i}_dim_mean_electrons'].unit = u.electron
-    hdr_tbl[f'wfs{i}_dim_std_electrons'].unit = u.electron
-    hdr_tbl[f'wfs{i}_bright_mean_electrons'].unit = u.electron
-    hdr_tbl[f'wfs{i}_bright_std_electrons'].unit = u.electron
+    hdr_tbl[f'wfs{i + 1}_dim_mean_electrons'].unit = u.electron
+    hdr_tbl[f'wfs{i + 1}_dim_std_electrons'].unit = u.electron
+    hdr_tbl[f'wfs{i + 1}_bright_mean_electrons'].unit = u.electron
+    hdr_tbl[f'wfs{i + 1}_bright_std_electrons'].unit = u.electron
 
-# Save hdr_tbl
+print("-" * 10, "Sanitizing table columns for ECSV compatibility", "-" * 10)
+
+final_tbl = hdr_tbl.copy()
+
+for col_name in final_tbl.colnames:
+    col = final_tbl[col_name]
+    
+    # 1. Skip specialized Mixins like 'Time' which don't have .dtype
+    if not hasattr(col, 'dtype'):
+        continue
+
+    # 2. Check if the column is an 'object' type
+    if col.dtype == object:
+        # Check if it contains Quantities (like '100.0 Hz')
+        # We look for the first non-null item to find a unit
+        sample_item = next((item for item in col if hasattr(item, 'unit')), None)
+        
+        if sample_item is not None:
+            print(f"Fixing object-Quantity column: {col_name}")
+            target_unit = sample_item.unit
+            
+            # Convert the list of Quantity objects into a clean numerical array
+            # Handle missing values ('--') by converting to NaN
+            def extract_val(x):
+                if hasattr(x, 'to_value'):
+                    return x.to_value(target_unit)
+                return np.nan
+
+            clean_values = np.array([extract_val(item) for item in col])
+            final_tbl[col_name] = clean_values * target_unit
+        else:
+            # If it's just an object column of strings/ints, convert to a standard numpy array
+            print(f"Converting object-standard column to array: {col_name}")
+            final_tbl[col_name] = np.array(list(col))
+
+# Now write the FINAL table
 place_to_save = "/u/nstieg/work/ao/keck/kapa/telemetry/kapa_ocam2k_read_stats.ecsv"
-hdr_tbl.write(place_to_save, format="ascii.ecsv", overwrite=True)
+final_tbl.write(place_to_save, format="ascii.ecsv", overwrite=True)
+print(f"Successfully saved to {place_to_save}")
