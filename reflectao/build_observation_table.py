@@ -191,6 +191,7 @@ def build_observation_table(
         row_vals['utt_gain'] = inst.get_utt_gain(hdr)
         row_vals['dtt_gain'] = inst.get_dtt_gain(hdr)
         row_vals['ao_mode'] = inst.get_ao_mode(hdr)
+        row_vals['ao_hatch_open'] = inst.was_AO_hatch_open(hdr)
 
         ### Detector information ###
         row_vals['lgs_wfs_detector_gain'] = inst.get_lgs_wfs_detector_gain(hdr)

@@ -240,6 +240,11 @@ SCHEMA = (
         unit="string",
         meaning="AO operations or control mode code/name.", # What is this / where did it come from? Same as reconstructor_name?
     ),
+    ColumnDef(
+        name="ao_hatch_open",
+        unit="boolean",
+        meaning="Whether the AO hatch is open",
+    ),
 
     # Detector information
     ColumnDef(
