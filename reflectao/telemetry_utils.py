@@ -652,7 +652,7 @@ def get_wfs_index_map():
             2: 3,
             3: 2}
 
-def populate_subap_map_with_data(frame_data, subap_map):
+def populate_subap_map_with_data(frame_data, subap_map=None):
     """
     Put 304 data points from a single frame of Keck I OSIRIS / KAPA
     ocam2k telemetry intensity data into a 2D map of the subapertures
@@ -667,8 +667,10 @@ def populate_subap_map_with_data(frame_data, subap_map):
 
     # Check params
     assert(len(frame_data) == 304), f"frame_data must be a list or numpy array of length 304, got {len(frame_data)}"
+    if subap_map is None:
+        subap_map = load_subap_map()
     assert(subap_map.shape == (20, 20)), f"subap_map must have shape (20, 20), got {subap_map.shape}"
-    assert(sum(subap_map == 1) == 304), f"subap_map must have 304 pixels with value 1, got {sum(subap_map == 1)}"
+    assert((subap_map == 1).sum() == 304), f"subap_map must have 304 pixels with value 1, got {(subap_map == 1).sum()}"
 
     result = np.zeros_like(subap_map, dtype=float)
     result[subap_map == 1] = frame_data
@@ -721,7 +723,7 @@ def plot_KAPA_subapertures_with_data(data, norm=None, cmap=None, cbar_label=None
     # Put data on the plot
     for i in range(4):
         ax = axs[i // 2, i % 2]
-        im = ax.imshow(data[sensor_map[i]], norm=norm, cmap=cmap)
+        im = ax.imshow(data[sensor_map[i] - 1], norm=norm, cmap=cmap)
         ax.set_title(f"SHWFS {sensor_map[i]}")
         ax.set_xlabel("Subaperture x index")
         ax.set_ylabel("Subaperture y index")
@@ -734,6 +736,57 @@ def plot_KAPA_subapertures_with_data(data, norm=None, cmap=None, cbar_label=None
     cbar.set_label(cbar_label, rotation=270, labelpad=15)
 
     plt.show()
+
+def plot_ocam2k_data(ocam2k, ocam2k_index, Norm=LogNorm, units=u.adu):
+    """
+    Plot the ocam2k data for each of the 4 WFSs.
+
+    :param ocam2k: A dictionary containing the ocam2k data for each WFS
+    :type ocam2k: dict
+    :param ocam2k_index: The index of the data to plot
+    :type ocam2k_index: int
+    :param Norm: The normalization to use for the colorbar
+    :type Norm: matplotlib.colors.Normalize
+    :param units: The units to convert the data to of u.adu, u.electron, or u.electron / u.second
+    :type units: astropy.units.Unit
+    """
+    
+    # get data
+    all_values = [] # (4 * 304, 1) array of subaperture values
+    all_data = [] # (4, 304) array of subaperture values as units
+    for i in range(1, 5):
+        adu_data = ocam2k[get_ocam2k_intensity_key(i)][ocam2k_index] * u.adu
+        
+        # Get the values to append in the right units
+        if units == u.electron:
+            to_append = ku.convert_adu_to_photo_electrons(adu_data, Time(ocam2k['timestamp'][0]), "4LGS").value
+        elif units == u.electron / u.second:
+            frame_differences = np.diff(ocam2k['rawtimestamp'] * u.ns)
+            frame_differences = frame_differences[frame_differences > 0 * u.ns] # Remove the negative differences (which are likely due to resets)
+            implied_frequencies = (1 / frame_differences).to(u.Hz)
+            frame_rate = implied_frequencies.mean()
+            to_append = ku.convert_adu_to_flux(adu_data, frame_rate, Time(ocam2k['timestamp'][0]), "4LGS").value
+        elif units == u.adu:
+            to_append = adu_data.value
+        else:
+            raise ValueError("Unsupported units")
+        all_values.extend(to_append)
+        all_data.append(to_append)
+
+    global_vmin = np.nanpercentile(all_values, 5)
+    global_vmax = np.nanmax(all_values)
+    shared_norm = Norm(vmin=global_vmin, vmax=global_vmax)
+
+    # Put data onto subapertures
+    data = []
+    for i in range(4):
+        this_wfs_data = populate_subap_map_with_data(all_data[i])
+        this_wfs_data = np.where(this_wfs_data == 0, np.nan, this_wfs_data)
+        data.append(this_wfs_data)
+
+    # Plot data
+    plot_KAPA_subapertures_with_data(data, norm=shared_norm, cmap=None, cbar_label=f"{units}")
+
 
 ### Data Processing Helper Functions ###
 
