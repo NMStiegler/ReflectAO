@@ -9,7 +9,7 @@ Missing values are represented using **masked** table entries (not Python
 quantities, etc.) while still marking missing data in a standard way.
 """
 
-from astropy.table import MaskedColumn, QTable
+from astropy.table import MaskedColumn, QTable, Row
 
 
 class ColumnDef(object):
@@ -393,8 +393,8 @@ def validate_table_has_schema(table, schema=SCHEMA, allow_extra_columns=True):
     This is intentionally a strict, readable check: it does not attempt to infer
     or rename columns. If a required column is missing, we raise a ValueError.
 
-    :param table: QTable to validate.
-    :type table: astropy.table.QTable
+    :param table: QTable or row of a QTable to validate 
+    :type table: astropy.table.QTable or astropy.table.Row
     :param schema: Schema definitions.
     :type schema: iterable
     :param allow_extra_columns: If True, allow columns beyond the schema; only
@@ -406,6 +406,11 @@ def validate_table_has_schema(table, schema=SCHEMA, allow_extra_columns=True):
     :return: None
     :rtype: None
     """
+
+    # If passed a row, extract the column names
+    if isinstance(table, Row):
+        table = QTable([table])
+
     required = schema_column_names(schema)
     missing = [c for c in required if c not in table.colnames]
     if missing:

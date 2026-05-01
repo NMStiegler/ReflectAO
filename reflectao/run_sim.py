@@ -1,14 +1,21 @@
+import numpy as np
+import reflectao.telemetry_utils as tu
+import reflectao.kapa_utils as ku
+import reflectao.schema as schema
 
+def notes_from_run_maos_comp_to_sim_sky(hdr_tbl_row):
+    ### Ensure that hdr_tbl_row is a row of the build_observation_table table
+    schema.validate_table_has_schema(hdr_tbl_row, allow_extra_columns=True)
 
-def notes_from_run_maos_comp_to_sim_sky:
-    # Set sim_dt to fastest WFS readout rate in Hz
-    if hdr_shwfs_frame_rate > hdr_strap_frame_rate:
-        max_frame_rate = hdr_shwfs_frame_rate
-    else:
-        max_frame_rate = hdr_strap_frame_rate
+    ### Setup simulation parameters
 
-    sim_dt = 1.0/max_frame_rate
-
+    # Figure out the shortest time interval we need to simulate
+    shwfs_frame_rate = hdr_tbl_row['lgs_wfs_rate']
+    strap_frame_rate = hdr_tbl_row['tt_wfs_rate']
+    max_frame_rate = max(shwfs_frame_rate, strap_frame_rate) 
+    sim_dt = 1.0/max_frame_rate # Set sim_dt to fastest WFS readout rate in Hz
+    
+    # Set dtrats (ratio of sample period over dt, must be an integer)
     howfs_dtrat = (sim_dt / hdr_shwfs_int_time)*1000.0
     strap_dtrat = (sim_dt / hdr_strap_int_time)*1000.0
 
