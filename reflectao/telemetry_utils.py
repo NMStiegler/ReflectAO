@@ -676,13 +676,13 @@ def populate_subap_map_with_data(frame_data, subap_map=None):
     result[subap_map == 1] = frame_data
     return result
 
-def plot_KAPA_subapertures_with_data(data, norm=None, cmap=None, cbar_label=None):
+def plot_data_on_KAPA_WFSs(data, norm=None, cmap=None, cbar_label=None, axes_label="Subaperture"):
     """
-    Plot data from the 4 KAPA LGS WFSs in a 2x2 grid of subapertures. The data
+    Plot data from the 4 KAPA LGS WFSs. The data
     should be organized from WFS1 to 4. If passed in, the normalization norm and 
     colorbar cmap are shared across all 4 subplots
 
-    :param data: A list of 4 numpy arrays, each with shape (20, 20), or numpy array of size (4, 20, 20), and values for the subapertures of the corresponding WFS with unused subapertures having NaN values
+    :param data: A list of 4 numpy arrays, each with shape (x, y), or numpy array of size (4, x, y), and values for unused display pixels (real pixels or subapertures) having NaN values
     :type data: list of numpy.ndarray
     :param norm: The normalization to use for the colorbar
     :type norm: matplotlib.colors.Normalize
@@ -695,12 +695,10 @@ def plot_KAPA_subapertures_with_data(data, norm=None, cmap=None, cbar_label=None
     # Verify input
     if isinstance(data, list):
         assert len(data) == 4, "data must be a list of 4 numpy arrays"
-        for d in data:
-            assert d.shape == (20, 20), "each array in data must have shape (20, 20)"
     elif isinstance(data, np.ndarray):
-        assert data.shape == (4, 20, 20), "data must be a numpy array of size (4, 20, 20)"
+        assert data.shape[0] == 4, "data must be a numpy array of size (4, x, y)"
     else:
-        raise TypeError("data must be a list of 4 numpy arrays or a numpy array of size (4, 20, 20)")
+        raise TypeError("data must be a list of 4 numpy arrays or a numpy array of size (4, x, y)")
     assert isinstance(norm, (Normalize, LogNorm, type(None))), "norm must be an instance of matplotlib.colors.Normalize, matplotlib.colors.LogNorm, or None"
     assert isinstance(cmap, (Colormap, type(None))), "cmap must be an instance of matplotlib.colors.Colormap or None"
 
@@ -709,7 +707,10 @@ def plot_KAPA_subapertures_with_data(data, norm=None, cmap=None, cbar_label=None
     
     # Get mapping
     sensor_map = get_wfs_index_map()
-    subap_map = load_subap_map()
+
+    # Normalize size of data. Should be (4, x, y) after this step
+    if isinstance(data, list):
+        data = np.array(data)
 
     # Setup default colormap
     if cmap == None:
@@ -725,10 +726,10 @@ def plot_KAPA_subapertures_with_data(data, norm=None, cmap=None, cbar_label=None
         ax = axs[i // 2, i % 2]
         im = ax.imshow(data[sensor_map[i] - 1], norm=norm, cmap=cmap)
         ax.set_title(f"SHWFS {sensor_map[i]}")
-        ax.set_xlabel("Subaperture x index")
-        ax.set_ylabel("Subaperture y index")
-        ax.set_xticks(range(0, subap_map.shape[1], 2))
-        ax.set_yticks(range(0, subap_map.shape[0], 2))
+        ax.set_xlabel(axes_label + " x index")
+        ax.set_ylabel(axes_label + " y index")
+        ax.set_xticks(range(0, data.shape[1], int(data.shape[1] / 10)))
+        ax.set_yticks(range(0, data.shape[2], int(data.shape[2] / 10)))
 
     # 4. Add the colorbar using the 'axs' grid
     # By passing the whole array 'axs', it places the colorbar to the right of the entire grid
@@ -737,22 +738,21 @@ def plot_KAPA_subapertures_with_data(data, norm=None, cmap=None, cbar_label=None
 
     plt.show()
 
-def plot_ocam2k_data(ocam2k, ocam2k_index, Norm=LogNorm, units=u.adu):
+def load_ocam2k_wfs_data(ocam2k, ocam2k_index, units=u.adu):
     """
-    Plot the ocam2k data for each of the 4 WFSs.
+    Load the ocam2k data for each of the 4 WFSs.
 
     :param ocam2k: A dictionary containing the ocam2k data for each WFS
     :type ocam2k: dict
-    :param ocam2k_index: The index of the data to plot
+    :param ocam2k_index: The index of the data to load
     :type ocam2k_index: int
-    :param Norm: The normalization to use for the colorbar
-    :type Norm: matplotlib.colors.Normalize
     :param units: The units to convert the data to of u.adu, u.electron, or u.electron / u.second
     :type units: astropy.units.Unit
+    :return: A list of 4 numpy arrays, each with shape (304,) containing the subaperture values in the specified units
+    :rtype: list of numpy.ndarray
     """
     
     # get data
-    all_values = [] # (4 * 304, 1) array of subaperture values
     all_data = [] # (4, 304) array of subaperture values as units
     for i in range(1, 5):
         adu_data = ocam2k[get_ocam2k_intensity_key(i)][ocam2k_index] * u.adu
@@ -770,8 +770,26 @@ def plot_ocam2k_data(ocam2k, ocam2k_index, Norm=LogNorm, units=u.adu):
             to_append = adu_data.value
         else:
             raise ValueError("Unsupported units")
-        all_values.extend(to_append)
         all_data.append(to_append)
+    
+    return all_data
+
+def plot_ocam2k_data(ocam2k, ocam2k_index, Norm=LogNorm, units=u.adu):
+    """
+    Plot the ocam2k data for each of the 4 WFSs.
+
+    :param ocam2k: A dictionary containing the ocam2k data for each WFS
+    :type ocam2k: dict
+    :param ocam2k_index: The index of the data to plot
+    :type ocam2k_index: int
+    :param Norm: The normalization to use for the colorbar
+    :type Norm: matplotlib.colors.Normalize
+    :param units: The units to convert the data to of u.adu, u.electron, or u.electron / u.second
+    :type units: astropy.units.Unit
+    """
+    
+    all_data = load_ocam2k_wfs_data(ocam2k, ocam2k_index, units=units)
+    all_values = np.concatenate([d.flatten() for d in all_data])
 
     global_vmin = np.nanpercentile(all_values, 5)
     global_vmax = np.nanmax(all_values)
@@ -785,8 +803,41 @@ def plot_ocam2k_data(ocam2k, ocam2k_index, Norm=LogNorm, units=u.adu):
         data.append(this_wfs_data)
 
     # Plot data
-    plot_KAPA_subapertures_with_data(data, norm=shared_norm, cmap=None, cbar_label=f"{units}")
+    plot_data_on_KAPA_WFSs(data, norm=shared_norm, cmap=None, cbar_label=f"{units}")
 
+
+def read_ocam2k_background(path):
+    """
+    Read in the ocam2k background data from the given path. The background data is stored as a binary file with big-endian unsigned 16-bit integers. The first 6400 pixels (80x80) are the non-zero background values for the subapertures, and the rest of the pixels are zero.
+
+    :param path: The path to the ocam2k background data file
+    :type path: str or pathlib.Path
+    :return: A numpy array of shape (80, 80) containing the background values for the subapertures in electrons
+    :rtype: numpy.ndarray
+    """
+
+    # Check inputs
+    assert(isinstance(path, (str, Path))), "path must be a string or pathlib.Path"
+    assert(Path(path).exists()), f"File not found: {path}"
+
+    # Read in raw data 228x228 binary file of big-endian unsigned 16-bit integers
+    # '>' means Big-Endian, 'u2' means unsigned 2-byte (16-bit)
+    raw_data = np.fromfile(path, dtype='>u2')
+    square_side_length = int(np.sqrt(raw_data.size))
+    assert(square_side_length == 228)
+
+    # Check that the first 6400 pixels are non-zero and the rest are zero
+    # corresponds to the 80x80 pixels
+    assert(np.sum(raw_data != 0) == 6400) # Only 6400 non-zero pixels
+    assert(np.where(raw_data.flatten() == 0)[0][0] == 6400) # The first 6400 pixels are non-zero, the rest are zero
+    
+    # Let's get the non-zero pixels
+    pupil_data = raw_data[raw_data != 0].reshape((80, 80))
+
+    # Convert them to the right units
+    pupil_data_adu = pupil_data * u.adu
+    pupil_data_electrons = ku.convert_adu_to_photo_electrons(pupil_data_adu, Time('2026-03-04T10:46:14'), '4LGS')
+    return pupil_data_electrons
 
 ### Data Processing Helper Functions ###
 
