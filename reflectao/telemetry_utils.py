@@ -724,7 +724,7 @@ def plot_data_on_KAPA_WFSs(data, norm=None, cmap=None, cbar_label=None, axes_lab
     # Put data on the plot
     for i in range(4):
         ax = axs[i // 2, i % 2]
-        im = ax.imshow(data[sensor_map[i] - 1], norm=norm, cmap=cmap)
+        im = ax.imshow(data[sensor_map[i] - 1], origin='lower', norm=norm, cmap=cmap)
         ax.set_title(f"SHWFS {sensor_map[i]}")
         ax.set_xlabel(axes_label + " x index")
         ax.set_ylabel(axes_label + " y index")
