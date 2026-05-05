@@ -403,6 +403,28 @@ def get_image_path_from_telemetry_path(telemetry_path):
 
     return get_path_to_image(night, set_num, image_num)
 
+def get_telemetry_path_from_image_path(image_path):
+    """
+    Get the path to the telemetry folder for a given image path
+
+    :param image_path: The path to the observed image fits file
+    :type image_path: pathlib.Path
+    :return: The path to the telemetry folder for the given image
+    :rtype: pathlib.Path
+    """
+
+    # Check params
+    assert(isinstance(image_path, Path)), "image_path must be a pathlib.Path"
+    assert(image_path.name.endswith(".fits")), "image_path must be a .fits file"
+
+    # Parse night, set, and image number from image path
+    fits_filename = image_path.name
+    night = image_path.parent.parent.name
+    set_num = int(fits_filename[9:12])
+    image_num = int(fits_filename[12:15])
+
+    return get_path_to_image_telemetry(night, set_num, image_num)
+
 def read_image_telemetry(path_to_telemetry_dir, verbose=False):
     """
     Read in the telemetry associated with a given image from the place
