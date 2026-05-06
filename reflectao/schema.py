@@ -171,6 +171,11 @@ SCHEMA = (
     
     # AO system information
     ColumnDef(
+        name='ao_closed',
+        unit='boolean',
+        meaning='Whether the AO system is closed loop',
+    ),
+    ColumnDef(
         name="lgs_wfs_rate",
         unit="Hz",
         meaning="Sampling/frame rate of the high order laser guide star wavefront sensor loop",
@@ -184,6 +189,11 @@ SCHEMA = (
         name="tt_wfs_centroid_gain",
         unit="dimensionless",
         meaning="Centroid gain of the tip tilt wavefront sensor (STRAP or TRICK)",
+    ),
+    ColumnDef(
+        name="num_lgs_wfs",
+        unit="dimensionless",
+        meaning="Number of LGS wavefront sensors (1 for LGS, 4 for KAPA AKA LTAO or pseudo LGAO)",
     ),
     ColumnDef(
         name="lgs_rms_wfe",
@@ -201,9 +211,9 @@ SCHEMA = (
         meaning="For OSIRIS data, which tip-tilt sensor was used (STRAP or NIRTTS/TRICK)?",
     ),
     ColumnDef(
-        name="ngs_fwhm",
+        name="lbwfs_fwhm",
         unit="arcsec",
-        meaning="FWHM size of the TT-NGS on the sky for the observation", # Is this true/logged?
+        meaning="FWHM size of the LBWFS",
     ),
     ColumnDef(
         name="ngs_wavelength",
@@ -309,9 +319,34 @@ SCHEMA = (
 
     # To do with weather data
     ColumnDef(
-        name="weather_file_path",
-        unit="string",
-        meaning="Path to the weather data file",
+        name="r0",
+        unit="m",
+        meaning="Fried parameter",
+    ),
+    ColumnDef(
+        name="turbulence_profile",
+        unit="7 normalized weights which sum to 1",
+        meaning="Turbulence profile",
+    ),
+    ColumnDef(
+        name="wind_speed_profile",
+        unit="7 wind speeds, in m/s, corresponding to the atmospheric layers",
+        meaning="Wind speed profile",
+    ),
+    ColumnDef(
+        name="wind_direction_profile",
+        unit="7 wind directions, in degrees, corresponding to the atmospheric layers",
+        meaning="Wind direction profile",
+    ),
+    ColumnDef(
+        name="tau0",
+        unit="s",
+        meaning="Atmospheric turbulence time constant",
+    ),
+    ColumnDef(
+        name="theta0",
+        unit="arcsec",
+        meaning="Atmospheric turbulence angle",
     )
 )
 
