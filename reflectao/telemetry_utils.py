@@ -985,3 +985,55 @@ def compute_aperture_wise_electron_stats(ocam2k, hdr_tbl):
 
     # Return final values
     return sensor_mean_electrons, sensor_stds_electrons
+
+def compute_aperture_wise_electron_rate_stats(ocam2k, hdr_tbl):
+    """
+    Compute the mean and standard deviation of the number of electrons read per second
+    for each subaperture across all 4 WFSs. The mean and standard deviation are
+    returned as two numpy arrays with shape (4, 304) and units of electrons per second
+
+    :param ocam2k: The ocam2k telemetry data loaded from the .npy file, as a numpy.lib.npyio.NpzFile
+    :type ocam2k: numpy.lib.npyio.NpzFile
+    :param hdr_tbl: The header table loaded from the observed image fits file, as an astropy Table
+    :type hdr_tbl: astropy.table.Table
+    :return: A tuple of (sensor_mean_electron_rates, sensor_stds_electron_rates) where each is a numpy array with shape (4, 304) and units of electrons per second of the mean and standard deviation respectively
+    :rtype: tuple of (numpy.ndarray, numpy.ndarray)
+    """
+
+    # Verify inputs
+    assert(isinstance(ocam2k, np.lib.npyio.NpzFile)), "ocam2k must be a dictionary"
+    for i in range(1, 5):
+        key = get_ocam2k_intensity_key(i)
+        assert(key in ocam2k), f"ocam2k must contain key {key}"
+        assert(isinstance(ocam2k[key], np.ndarray)), f"ocam2k[{key}] must be a numpy array"
+        assert(ocam2k[key].ndim == 2), f"ocam2k[{key}] must be a 2D numpy array with shape (num_frames, 304), got shape {ocam2k[key].shape}"
+        assert(ocam2k[key].shape[1] == 304), f"ocam2k[{key}] must have shape (num_frames, 304), got shape {ocam2k[key].shape}"
+    assert(isinstance(hdr_tbl, (Table, Row))), "hdr_tbl must be an astropy Table or Row"
+    assert('lgs_wfs_rate' in hdr_tbl.columns), "hdr_tbl must contain column 'lgs_wfs_rate', the frame rate of the camera"
+    assert('t_exposure_start' in hdr_tbl.columns), "hdr_tbl must contain column 't_exposure_start', the start time of the exposure"
+
+    # Get date of observation
+    if isinstance(hdr_tbl, Table):
+        exposure_start = hdr_tbl["t_exposure_start"][0]
+        frame_rate = hdr_tbl["lgs_wfs_rate"][0]
+
+    else:
+        exposure_start = hdr_tbl["t_exposure_start"]
+        frame_rate = hdr_tbl["lgs_wfs_rate"]
+
+    # Compute mean and standard deviation of electrons for each subaperture across all 4 WFSs
+    sensor_mean_electrons = []
+    sensor_stds_electrons = []
+    for i in range(1, 5):
+        # Get adus, fluxes, and electrons for this wfs
+        adus = ocam2k[get_ocam2k_intensity_key(i)] * u.adu
+        electrons = ku.convert_adu_to_flux(adus, frame_rate, date=Time(exposure_start), mode="KAPA")
+        sensor_mean_electrons.append(electrons.mean(axis=0))
+        sensor_stds_electrons.append(electrons.std(axis=0))
+    
+    # Convert lists to numpy arrays with the right units
+    sensor_mean_electrons = np.array(sensor_mean_electrons) * (u.electron / u.second)
+    sensor_stds_electrons = np.array(sensor_stds_electrons) * (u.electron / u.second)
+
+    # Return final values
+    return sensor_mean_electrons, sensor_stds_electrons
