@@ -46,7 +46,7 @@ def test_build_observation_table_one_row_with_data_from_fits_header(tmp_path: Pa
     assert tbl["lgs_rms_wfe"][0] == 379.9 * u.nm
     assert tbl["lgs_layer_alt"][0] == 85868 * u.m
     assert tbl["OSIRIS_tt_sensor"][0] == "STRAP"
-    assert tbl["ngs_fwhm"][0] == 2.834221576850309 * u.arcsec
+    assert tbl["lbwfs_fwhm"][0] == 1.0 * u.arcsec
     assert tbl["ngs_wavelength"][0] == (6.5E-07 * u.m).to(u.m)
     assert tbl["reconstructor_name"][0] == "26Feb0031.mr"
     assert tbl["dm_gain"][0] == 0.4
@@ -64,8 +64,7 @@ def test_build_observation_table_one_row_with_data_from_fits_header(tmp_path: Pa
     assert tbl["wind_speed"][0] == 0.41 * u.m / u.s
     assert tbl["t_weather_sample"][0] == "07:58:05.34"
     assert tbl["T_tube"][0] == -2.03654206 * u.deg_C
-    assert tbl["telemetry_file_path"][0] is np.ma.masked
-    assert tbl["weather_file_path"][0] is np.ma.masked
+    assert tbl["telemetry_file_path"][0] == '/g3/data/kapa/2026feb26/telemetry/IMAG/i260226_a010002.fits'
 
 
 def test_build_observation_table_two_files(tmp_path: Path):
@@ -106,7 +105,7 @@ def test_build_observation_table_two_files(tmp_path: Path):
     assert tbl["lgs_rms_wfe"][index] == 379.9 * u.nm
     assert tbl["lgs_layer_alt"][index] == 85868 * u.m
     assert tbl["OSIRIS_tt_sensor"][index] == "STRAP"
-    assert tbl["ngs_fwhm"][index] == 2.834221576850309 * u.arcsec
+    assert tbl["lbwfs_fwhm"][index] == 1.0 * u.arcsec
     assert tbl["ngs_wavelength"][index] == (6.5E-07 * u.m).to(u.m)
     assert tbl["reconstructor_name"][index] == "26Feb0031.mr"
     assert tbl["dm_gain"][index] == 0.4
@@ -124,8 +123,7 @@ def test_build_observation_table_two_files(tmp_path: Path):
     assert tbl["wind_speed"][index] == 0.41 * u.m / u.s
     assert tbl["t_weather_sample"][index] == "07:58:05.34"
     assert tbl["T_tube"][index] == -2.03654206 * u.deg_C
-    assert tbl["telemetry_file_path"][index] is np.ma.masked
-    assert tbl["weather_file_path"][index] is np.ma.masked
+    assert tbl["telemetry_file_path"][index] == '/g3/data/kapa/2026feb26/telemetry/IMAG/i260226_a010002.fits'
 
     index = 1
     assert tbl["image_path"][index] == TEST_PATH[index]
@@ -159,7 +157,7 @@ def test_build_observation_table_two_files(tmp_path: Path):
     assert tbl["lgs_rms_wfe"][index] == 379.9 * u.nm
     assert tbl["lgs_layer_alt"][index] == 85868 * u.m
     assert tbl["OSIRIS_tt_sensor"][index] == "STRAP"
-    assert tbl["ngs_fwhm"][index] == 2.834221576850309 * u.arcsec
+    assert tbl["lbwfs_fwhm"][index] == 1.0 * u.arcsec
     assert tbl["ngs_wavelength"][index] == (6.5E-07 * u.m).to(u.m)
     assert tbl["reconstructor_name"][index] == "26Feb0031.mr"
     assert tbl["dm_gain"][index] == 0.4
@@ -177,8 +175,7 @@ def test_build_observation_table_two_files(tmp_path: Path):
     assert tbl["wind_speed"][index] == 0.41 * u.m / u.s
     assert tbl["t_weather_sample"][index] == "07:58:05.34"
     assert tbl["T_tube"][index] == -2.03654206 * u.deg_C
-    assert tbl["telemetry_file_path"][index] is np.ma.masked
-    assert tbl["weather_file_path"][index] is np.ma.masked
+    assert tbl["telemetry_file_path"][index] == '/g3/data/kapa/2026feb26/telemetry/IMAG/i260226_a010002.fits'
 
 
 def test_build_observation_table_extending_table(tmp_path: Path):
@@ -222,7 +219,7 @@ def test_build_observation_table_extending_table(tmp_path: Path):
     assert tbl["lgs_rms_wfe"][index] == 379.9 * u.nm
     assert tbl["lgs_layer_alt"][index] == 85868 * u.m
     assert tbl["OSIRIS_tt_sensor"][index] == "STRAP"
-    assert tbl["ngs_fwhm"][index] == 2.834221576850309 * u.arcsec
+    assert tbl["lbwfs_fwhm"][index] == 1.0 * u.arcsec
     assert tbl["ngs_wavelength"][index] == (6.5E-07 * u.m).to(u.m)
     assert tbl["reconstructor_name"][index] == "26Feb0031.mr"
     assert tbl["dm_gain"][index] == 0.4
@@ -240,8 +237,7 @@ def test_build_observation_table_extending_table(tmp_path: Path):
     assert tbl["wind_speed"][index] == 0.41 * u.m / u.s
     assert tbl["t_weather_sample"][index] == "07:58:05.34"
     assert tbl["T_tube"][index] == -2.03654206 * u.deg_C
-    assert tbl["telemetry_file_path"][index] is np.ma.masked
-    assert tbl["weather_file_path"][index] is np.ma.masked
+    assert tbl["telemetry_file_path"][index] == '/g3/data/kapa/2026feb26/telemetry/IMAG/i260226_a010002.fits'
 
     index = 1
     assert tbl["image_path"][index] == TEST_PATH
@@ -275,7 +271,7 @@ def test_build_observation_table_extending_table(tmp_path: Path):
     assert tbl["lgs_rms_wfe"][index] == 379.9 * u.nm
     assert tbl["lgs_layer_alt"][index] == 85868 * u.m
     assert tbl["OSIRIS_tt_sensor"][index] == "STRAP"
-    assert tbl["ngs_fwhm"][index] == 2.834221576850309 * u.arcsec
+    assert tbl["lbwfs_fwhm"][index] == 1.0 * u.arcsec
     assert tbl["ngs_wavelength"][index] == (6.5E-07 * u.m).to(u.m)
     assert tbl["reconstructor_name"][index] == "26Feb0031.mr"
     assert tbl["dm_gain"][index] == 0.4
@@ -293,7 +289,6 @@ def test_build_observation_table_extending_table(tmp_path: Path):
     assert tbl["wind_speed"][index] == 0.41 * u.m / u.s
     assert tbl["t_weather_sample"][index] == "07:58:05.34"
     assert tbl["T_tube"][index] == -2.03654206 * u.deg_C
-    assert tbl["telemetry_file_path"][index] is np.ma.masked
-    assert tbl["weather_file_path"][index] is np.ma.masked
+    assert tbl["telemetry_file_path"][index] == '/g3/data/kapa/2026feb26/telemetry/IMAG/i260226_a010002.fits'
 
 
