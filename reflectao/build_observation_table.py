@@ -18,7 +18,10 @@ from astropy.time import Time
 from astropy import units as u
 from astropy.table import vstack, QTable
 
+import paarti.utils.maos_utils as mu
+
 from .schema import new_empty_observation_table, validate_table_has_schema, schema_column_names, SCHEMA
+from .telemetry_utils import *
 
 def _normalize_paths(fits_paths):
     """
@@ -62,7 +65,6 @@ def build_observation_table(
     fits_paths,
     instrument,
     telemetry_paths=None,
-    weather_paths=None,
     table=None,
     verbose=False
 ):
@@ -74,12 +76,8 @@ def build_observation_table(
     :type fits_paths: str or pathlib.Path or list
     :param instrument: Instrument identifier string (e.g. "OSIRIS").
     :type instrument: str
-    :param telemetry_paths: Optional paths to already-downloaded telemetry.
-        TODO: auto-discovery / downloading is not implemented in this slice.
+    :param telemetry_paths: Optional paths to already-downloaded telemetry. When not provided, the code will attempt to auto-discover the telemetry paths.
     :type telemetry_paths: str or pathlib.Path, optional
-    :param weather_paths: Optional paths to already-downloaded weather data.
-        TODO: auto-discovery / downloading is not implemented in this slice.
-    :type weather_paths: str or pathlib.Path, optional
     :param table: Optional existing observation table to extend.
         If provided, it must already contain all schema columns.
     :type table: astropy.table.Table, optional
@@ -98,7 +96,6 @@ def build_observation_table(
     # was passed in
     fits_paths = _normalize_paths(fits_paths)
     telemetry_paths = _normalize_paths(telemetry_paths) if telemetry_paths is not None else []
-    weather_paths = _normalize_paths(weather_paths) if weather_paths is not None else []
     
     # Setup the table to add to. If no table is provided, create a new one.
     if table is not None:
@@ -119,8 +116,14 @@ def build_observation_table(
 
     # Add a row to the table for each image, pointed to by a path in our list
     for index, p in enumerate(fits_paths):
-        weather_file = weather_paths[index] if index < len(weather_paths) else np.ma.masked
         telemetry_file = telemetry_paths[index] if index < len(telemetry_paths) else np.ma.masked
+        if telemetry_file is None or telemetry_file is np.ma.masked:
+            try:
+                telemetry_file = get_telemetry_path_from_image_path(p)
+            except Exception as e:
+                if verbose:
+                    print(f"Error occurred while fetching telemetry path for {p}: {e}")
+                telemetry_file = None
 
         # Get the fits header for the current image
         hdr = fits.getheader(p)
@@ -129,6 +132,7 @@ def build_observation_table(
         ############# Add metadata from this row's FITS file #############
         ### System information ###
         row_vals["image_path"] = str(p) # Path to the FITS file
+        row_vals['telemetry_file_path'] = str(telemetry_file) if (telemetry_file is not np.ma.masked and telemetry_file is not None) else np.ma.masked
         
         ### Telescope / instrument / set information ###
         row_vals['telescope_name'] = inst.get_telescope_name(hdr)
@@ -164,6 +168,7 @@ def build_observation_table(
         row_vals['dither_name'] = inst.get_dither_name(hdr)
 
         ### AO system information ###
+        row_vals['ao_closed'] = inst.was_waiting_for_DM_lock(hdr) and inst.was_DM_closed_loop(hdr)
         row_vals['lgs_wfs_rate'] = inst.get_lgs_wfs_rate(hdr) * u.Hz
 
         # Initialize TT variables to masked to ensure they always exist in the schema
@@ -184,7 +189,7 @@ def build_observation_table(
         
         row_vals['lgs_rms_wfe'] = inst.get_lgs_rms_wfe(hdr) * u.nm
         row_vals['lgs_layer_alt'] = inst.get_lgs_layer_altitude(hdr) * u.m
-        row_vals['ngs_fwhm'] = _safe_get(inst.get_ngs_fwhm, hdr, u.arcsec)
+        row_vals['lbwfs_fwhm'] = _safe_get(inst.get_lbwfs_fwhm, hdr, u.arcsec)
         row_vals['ngs_wavelength'] = (inst.get_ngs_wavelength(hdr) * u.m).to(u.nm)
         row_vals['reconstructor_name'] = inst.get_reconstructor_name(hdr)
         row_vals['dm_gain'] = inst.get_dm_gain(hdr)
@@ -212,16 +217,23 @@ def build_observation_table(
         row_vals['T_tube'] = _safe_get(inst.get_tube_temperature, hdr, u.deg_C)
 
         # Telemetry handling
-        row_vals['telemetry_file_path'] = str(telemetry_file) if (telemetry_file is not np.ma.masked and telemetry_file is not None) else np.ma.masked
+        telem_files = read_image_telemetry(telemetry_file, verbose=True)
+        ocam2k = load_ocam2k_data(telem_files)
+        row_vals['num_lgs_wfs'] = 4 if has_four_lgs_data(ocam2k) else 1 # Either in LGS with 1 WFS or KAPA/LTAO with 4
 
         # Weather handling
-        row_vals['weather_file_path'] = str(weather_file) if (weather_file is not np.ma.masked and weather_file is not None) else np.ma.masked
+        on_sky_fits_file_path = str(row_vals['image_path'])
+        folder_with_on_sky_data = "/u/nstieg/work/ao/keck/massdimm/"
+        on_sky_conditions = mu.estimate_on_sky_conditions(on_sky_fits_file_path, folder_with_on_sky_data)
+        r0, turbulence_profile, wind_speed_profile, wind_direction_profile, _, _, _, _, tau0, theta0, _ = on_sky_conditions
 
-        ### File paths ###
-
-        # Calculate atm parameters
-        # fried, turbpro, windspds, winddrcts, _, _, _, _, _, _ = estimate_on_sky_conditions(sky_file, 
-        #                                                                                    sky_folder)
+        # Put weather data in row
+        row_vals['r0'] = r0
+        row_vals['turbulence_profile'] = turbulence_profile
+        row_vals['wind_speed_profile'] = wind_speed_profile
+        row_vals['wind_direction_profile'] = wind_direction_profile
+        row_vals['tau0'] = tau0
+        row_vals['theta0'] = theta0
 
         # Put in the table
         new_rows.append(row_vals)
