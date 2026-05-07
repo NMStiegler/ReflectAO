@@ -50,9 +50,15 @@ dim_std_electrons = [] # Collect the median of the per subaperture standard devi
 bright_mean_electrons = [] # Collect the median of the per subaperture mean electrons of the bright population.
 bright_std_electrons = [] # Collect the median of the per subaperture standard deviations of the bright population.
 
+dim_mean_electron_rates = [] # Collect the median of the per subaperture mean electron rates of the dim population.
+dim_std_electron_rates = [] # Collect the median of the per subaperture standard deviations of the dim population.
+bright_mean_electron_rates = [] # Collect the median of the per subaperture mean electron rates of the bright population.
+bright_std_electron_rates = [] # Collect the median of the per subaperture standard deviations of the bright population.
+
+
 # Helper function to safely extract values whether they are Quantities or standard numbers
-def strip_units(data_list):
-    return [x.to_value(u.electron) if hasattr(x, 'to_value') else x for x in data_list]
+def strip_units(data_list, unit=u.electron):
+    return [x.to_value(unit) if hasattr(x, 'to_value') else x for x in data_list]
 
 for i, row in enumerate(hdr_tbl):
     # Print info
@@ -75,6 +81,18 @@ for i, row in enumerate(hdr_tbl):
     bright_mean_electrons.append(np.array(strip_units(median_bright_mean_e)))
     bright_std_electrons.append(np.array(strip_units(median_bright_std_e)))
 
+    # Compute the mean and standard deviation of the number of electrons read per second
+    # for each subaperture across all 4 WFSs
+    sensor_mean_electron_rates, sensor_stds_electron_rates = tu.compute_aperture_wise_electron_rate_stats(ocam2k, row)
+    median_dim_mean_er, median_bright_mean_er = tu.compute_median_values_for_all_wfs(sensor_mean_electron_rates, thresh=20)
+    median_dim_std_er, median_bright_std_er = tu.compute_median_values_for_all_wfs(sensor_stds_electron_rates, thresh=20)
+
+    # Add to lists as unitless numpy arrays by iterating through the returned lists
+    dim_mean_electron_rates.append(np.array(strip_units(median_dim_mean_er, unit=u.electron / u.second)))
+    dim_std_electron_rates.append(np.array(strip_units(median_dim_std_er, unit=u.electron / u.second)))
+    bright_mean_electron_rates.append(np.array(strip_units(median_bright_mean_er, unit=u.electron / u.second)))
+    bright_std_electron_rates.append(np.array(strip_units(median_bright_std_er, unit=u.electron / u.second)))
+
 print("-" * 10, f"Done analyzing files at {Time.now().to_datetime()}, now saving to table", "-" * 10)
 
 # Convert lists of 1D arrays into 2D numpy arrays
@@ -84,6 +102,11 @@ dim_std_arr = np.array(dim_std_electrons)
 bright_mean_arr = np.array(bright_mean_electrons)
 bright_std_arr = np.array(bright_std_electrons)
 
+dim_mean_rate_arr = np.array(dim_mean_electron_rates)
+dim_std_rate_arr = np.array(dim_std_electron_rates)
+bright_mean_rate_arr = np.array(bright_mean_electron_rates)
+bright_std_rate_arr = np.array(bright_std_electron_rates)
+
 # Put arrays into hdr_tbl as separate columns for each WFS (0 through 3)
 num_wfs = 4
 for i in range(num_wfs):
@@ -92,12 +115,22 @@ for i in range(num_wfs):
     hdr_tbl[f'wfs{i + 1}_dim_std_electrons'] = dim_std_arr[:, i]
     hdr_tbl[f'wfs{i + 1}_bright_mean_electrons'] = bright_mean_arr[:, i]
     hdr_tbl[f'wfs{i + 1}_bright_std_electrons'] = bright_std_arr[:, i]
-    
+
+    hdr_tbl[f'wfs{i + 1}_dim_mean_electron_rates'] = dim_mean_rate_arr[:, i]
+    hdr_tbl[f'wfs{i + 1}_dim_std_electron_rates'] = dim_std_rate_arr[:, i]
+    hdr_tbl[f'wfs{i + 1}_bright_mean_electron_rates'] = bright_mean_rate_arr[:, i]
+    hdr_tbl[f'wfs{i + 1}_bright_std_electron_rates'] = bright_std_rate_arr[:, i]
+
     # Reapply the Astropy units to the table columns directly so metadata is preserved
     hdr_tbl[f'wfs{i + 1}_dim_mean_electrons'].unit = u.electron
     hdr_tbl[f'wfs{i + 1}_dim_std_electrons'].unit = u.electron
     hdr_tbl[f'wfs{i + 1}_bright_mean_electrons'].unit = u.electron
     hdr_tbl[f'wfs{i + 1}_bright_std_electrons'].unit = u.electron
+
+    hdr_tbl[f'wfs{i + 1}_dim_mean_electron_rates'].unit = u.electron / u.second
+    hdr_tbl[f'wfs{i + 1}_dim_std_electron_rates'].unit = u.electron / u.second
+    hdr_tbl[f'wfs{i + 1}_bright_mean_electron_rates'].unit = u.electron / u.second
+    hdr_tbl[f'wfs{i + 1}_bright_std_electron_rates'].unit = u.electron / u.second
 
 print("-" * 10, "Sanitizing table columns for ECSV compatibility", "-" * 10)
 
