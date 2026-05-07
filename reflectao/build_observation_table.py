@@ -228,7 +228,7 @@ def build_observation_table(
         r0, turbulence_profile, wind_speed_profile, wind_direction_profile, _, _, _, _, tau0, theta0, _ = on_sky_conditions
 
         # Put weather data in row
-        row_vals['r0'] = r0
+        row_vals['r0'] = r0 * u.m
         row_vals['turbulence_profile'] = turbulence_profile
         row_vals['wind_speed_profile'] = wind_speed_profile * (u.m / u.s)
         row_vals['wind_direction_profile'] = wind_direction_profile * u.deg
