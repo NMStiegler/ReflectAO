@@ -230,10 +230,10 @@ def build_observation_table(
         # Put weather data in row
         row_vals['r0'] = r0
         row_vals['turbulence_profile'] = turbulence_profile
-        row_vals['wind_speed_profile'] = wind_speed_profile
-        row_vals['wind_direction_profile'] = wind_direction_profile
-        row_vals['tau0'] = tau0
-        row_vals['theta0'] = theta0
+        row_vals['wind_speed_profile'] = wind_speed_profile * (u.m / u.s)
+        row_vals['wind_direction_profile'] = wind_direction_profile * u.deg
+        row_vals['tau0'] = tau0 * u.s
+        row_vals['theta0'] = theta0 * u.arcsec
 
         # Put in the table
         new_rows.append(row_vals)
