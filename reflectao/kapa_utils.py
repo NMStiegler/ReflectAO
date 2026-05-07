@@ -41,6 +41,7 @@ def get_wfso1_gain(date, mode):
 
     # From Avinash, see https://docs.google.com/document/d/1yU_FpeVar_OlH-0ezAmpHIG7s87cANQaT-MNuvUhbBk/edit?tab=t.0
     # and from KAPA commissioning file header /g3/data/KECK/20260112_OSIRIS/KOA_13410/OSIRIS/raw/i260112_a000070.fits
+    # Also in the O1SMGN spot on the image FITS header
     if mode == 'LGS':
         return 200 # Gain for single lasers (LGS)
     elif mode == '4LGS' or mode == 'KAPA':
