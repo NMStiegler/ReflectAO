@@ -13,12 +13,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.colors import Colormap, LogNorm, Normalize
 from pathlib import Path
-from reflectao import kapa_utils as ku
+from reflectao import build_observation_table, kapa_utils as ku
 import reflectao as rao
 import astropy.units as u
 from astropy.time import Time
-from astropy.table import Table, Row
+from astropy.table import Table, Row, QTable
+from astropy.io import fits
 import paarti.utils.maos_utils as mu
+import warnings
+from astropy.utils.exceptions import AstropyUserWarning
 
 ### Useful References ###
 
@@ -633,7 +636,8 @@ def load_utt_data(telem_files):
     return uptiptilt
 
 def get_xinetics_data(telem_files):
-    """ Load xinetics data from a list of telemetry files
+    """
+    Load xinetics data from a list of telemetry files
 
     :param telem_files: List of telemetry files
     :type telem_files: list
@@ -644,6 +648,115 @@ def get_xinetics_data(telem_files):
     xinetics_loc = np.where(np.array([file if 'xinetics' in str(file) else None for file in telem_files]) != None)[0][0]
     xinetics = np.load(telem_files[xinetics_loc])
     return xinetics
+
+def get_tt_guide_star_r_mag(image_path, t_exposure_start, t_exposure_duration):
+    """
+    Get the tip tilt guide star apparent R band magnitude from the LBWFS image headers
+
+    :param image_path: The path to the observed image fits file
+    :type image_path: pathlib.Path or str
+    :param t_exposure_start: The UTC start time of the exposure
+    :type t_exposure_start: astropy Time 
+    :param t_exposure_duration: The duration of the exposure in seconds
+    :type t_exposure_duration: float
+    :return: The apparent R band magnitude of the tip tilt guide star
+    """
+
+    # Check params
+    assert(isinstance(image_path, (Path, str))), "image_path must be a pathlib.Path or string"
+    assert(isinstance(t_exposure_start, Time)), "t_exposure_start must be an astropy Time object"
+    assert(isinstance(t_exposure_duration, (int, float, u.quantity.Quantity))), "t_exposure_duration must be a number"
+    if not isinstance(t_exposure_duration, (u.quantity.Quantity)):
+        t_exposure_duration = t_exposure_duration * u.s
+
+    # Get location of lbwfs images
+    if isinstance(image_path, str):
+        image_path = Path(image_path)
+    dir = get_lbwfs_folder_path_from_image_path(image_path)
+
+    # Get the UTC end time of the exposure
+    t_exposure_end = t_exposure_start + t_exposure_duration
+
+    print("Want to find between")
+    print("Start", t_exposure_start)
+    print("End", t_exposure_end)
+
+    # Get all names of lbwfs images
+    lbwfs_image_files = sorted(dir.glob("*.fits.gz"))
+
+    # Do a binary search to find the file with the closest UTC timestamp to the exposure time so we don't have to load the
+    # headers from each file which is slow
+    left, right = 0, len(lbwfs_image_files) - 1
+    closest_file = None
+    while left <= right:
+        mid = (left + right) // 2
+        mid_file = lbwfs_image_files[mid]
+        with warnings.catch_warnings(): # Ignore warnings about non-standard convention on AOFCLBF0 keyword in the lbwfs headers
+            warnings.filterwarnings("ignore", category=AstropyUserWarning)
+            mid_hdr = fits.getheader(mid_file)
+        mid_time = Time(f'{mid_hdr["DATE"]} {mid_hdr["UTC"]}', scale='utc')
+        print("Mid", mid_time)
+
+        if t_exposure_start <= mid_time <= t_exposure_end:
+            closest_file = mid_file
+            break
+        elif mid_time < t_exposure_start:
+            print("Too early, going later")
+            left = mid + 1
+        else:
+            print("Too late, going earlier")
+            right = mid - 1
+
+    # Check to make sure we found a file
+    if closest_file is None:
+        # Take the closest of left and right if we didn't find a file in the range
+        with warnings.catch_warnings(): # Ignore warnings about non-standard convention on AOFCLBF0 keyword in the lbwfs headers
+            warnings.filterwarnings("ignore", category=AstropyUserWarning)
+            left_time = Time(f'{fits.getheader(lbwfs_image_files[left])["DATE"]} {fits.getheader(lbwfs_image_files[left])["UTC"]}', scale='utc') if left < len(lbwfs_image_files) else None
+            right_time = Time(f'{fits.getheader(lbwfs_image_files[right])["DATE"]} {fits.getheader(lbwfs_image_files[right])["UTC"]}', scale='utc') if right >= 0 else None
+        if left_time and right_time:
+            if abs(left_time - t_exposure_start) < abs(right_time - t_exposure_end):
+                closest_file = lbwfs_image_files[left]
+            else:
+                closest_file = lbwfs_image_files[right]
+        elif left_time:
+            closest_file = lbwfs_image_files[left]
+        elif right_time:
+            closest_file = lbwfs_image_files[right]
+        else:
+            raise ValueError("No lbwfs image files found in directory")
+
+    # Load the header of the closest file and get the R band magnitude of the tip tilt guide star
+    with warnings.catch_warnings(): # Ignore warnings about non-standard convention on AOFCLBF0 keyword in the lbwfs headers
+        warnings.filterwarnings("ignore", category=AstropyUserWarning)
+        closest_file_hdr = fits.getheader(closest_file)
+
+    return closest_file_hdr['LGTTRMAG']
+
+def get_lbwfs_folder_path_from_image_path(image_path):
+    """
+    Get the path to the lbwfs_images folder for a given image path
+
+    :param image_path: The path to the observed image fits file
+    :type image_path: pathlib.Path or str
+    :return: The path to the lbwfs_images folder for the given image
+    :rtype: pathlib.Path
+    """
+
+    # Check params
+    assert(isinstance(image_path, (Path, str))), "image_path must be a pathlib.Path"
+    assert(image_path.name.endswith(".fits")), "image_path must be a .fits file"
+
+    # Turn a string into a Path if needed
+    if isinstance(image_path, str):
+        image_path = Path(image_path)
+
+    # Parse night, set, and image number from image path
+    fits_filename = image_path.name
+    night = image_path.parent.parent.name
+    
+
+    return Path(f"/g/lu/data/kapa/{night}/lbwfs_images/")
 
 ### Plotting helper functions ###
 
@@ -874,8 +987,11 @@ def compute_median_values(data, thresh=20):
     high and low population
     
     :param data: A numpy array or list of subaperture intensities for a single WFS, with length 304
+    :type data: numpy.ndarray or list
     :param thresh: The percentile threshold for separating lit and unlit subapertures
+    :type thresh: int or float
     :return: A tuple of (median_unlit_intensity, median_lit_intensity)
+    :rtype: tuple
     """
     
     # Verify inputs

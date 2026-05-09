@@ -196,6 +196,11 @@ SCHEMA = (
         meaning="Number of LGS wavefront sensors (1 for LGS, 4 for KAPA AKA LTAO or pseudo LGAO)",
     ),
     ColumnDef(
+        name="tt_gs_r_mag",
+        unit="apparent magnitude",
+        meaning="R-band magnitude of the tip-tilt guide star",
+    ),
+    ColumnDef(
         name="lgs_rms_wfe",
         unit="nm",
         meaning="Average RMS residual wavefront error of the LGS WFS for the observation",
