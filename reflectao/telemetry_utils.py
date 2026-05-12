@@ -709,16 +709,16 @@ def get_tt_guide_star_r_mag(image_path, t_exposure_start, t_exposure_duration):
             warnings.filterwarnings("ignore", category=AstropyUserWarning)
             mid_hdr = fits.getheader(mid_file)
         mid_time = Time(f'{mid_hdr["DATE"]} {mid_hdr["UTC"]}', scale='utc')
-        print("Mid", mid_time)
+        # print("Mid", mid_time)
 
         if t_exposure_start <= mid_time <= t_exposure_end:
             closest_file = mid_file
             break
         elif mid_time < t_exposure_start:
-            print("Too early, going later")
+            # print("Too early, going later")
             left = mid + 1
         else:
-            print("Too late, going earlier")
+            # print("Too late, going earlier")
             right = mid - 1
 
     # Check to make sure we found a file
@@ -729,6 +729,8 @@ def get_tt_guide_star_r_mag(image_path, t_exposure_start, t_exposure_duration):
             left_time = Time(f'{fits.getheader(lbwfs_image_files[left])["DATE"]} {fits.getheader(lbwfs_image_files[left])["UTC"]}', scale='utc') if left < len(lbwfs_image_files) else None
             right_time = Time(f'{fits.getheader(lbwfs_image_files[right])["DATE"]} {fits.getheader(lbwfs_image_files[right])["UTC"]}', scale='utc') if right >= 0 else None
         if left_time and right_time:
+            # print("Left time", left_time)
+            # print("Right time", right_time)
             if abs(left_time - t_exposure_start) < abs(right_time - t_exposure_end):
                 closest_file = lbwfs_image_files[left]
             else:
