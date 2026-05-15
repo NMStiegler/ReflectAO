@@ -137,6 +137,7 @@ def build_observation_table(
         ### Telescope / instrument / set information ###
         row_vals['telescope_name'] = inst.get_telescope_name(hdr)
         row_vals['instrument_name'] = inst.get_instrument_name(hdr)
+        row_vals['instrument_angle'] = inst.get_instrument_angle(hdr) * u.deg
         row_vals['OSIRIS_imaging_mode'] = inst.get_imaging_mode(hdr) # For OSIRIS, get the imaging mode (imag or spec)
         row_vals['telescope_elevation'] = inst.get_telescope_elevation(hdr) * u.deg
         row_vals['telescope_azimuth'] = inst.get_telescope_azimuth(hdr) * u.deg
@@ -175,7 +176,6 @@ def build_observation_table(
         row_vals['OSIRIS_tt_sensor'] = np.ma.masked
         row_vals['tt_wfs_rate'] = np.ma.masked
         row_vals['tt_wfs_centroid_gain'] = np.ma.masked
-
         if inst.get_instrument_name(hdr) == "OSIRIS": # Get tip tilt / NGS sensor information, which can differ on OSIRIS/Keck I
             TT_sensor = inst.get_tip_tilt_wfs_name(hdr) # Either STRAP or NIRTTS (TRICK)
             row_vals['OSIRIS_tt_sensor'] = TT_sensor
@@ -186,7 +186,30 @@ def build_observation_table(
             elif TT_sensor == "NIRTTS":
                 # Not sure how to get the frame rate for TRICK
                 row_vals['tt_wfs_centroid_gain'] = inst.get_TRICK_centroid_gain(hdr)
-        
+            elif TT_sensor == "NIRTTS + STRAP":
+                # There's some way to tell which one is being used for tip-tilt
+                # but I'm not sure how
+                pass
+
+        # Find where the tip-tilt star is on the detector using the aotsx/y values, which define 
+        # where the tip-tilt stage is located and thus where the tip-tilt star is located since the tip-tilt stage steers the tip-tilt star onto the TT sensor.
+        # Based on: kai/reduce/kai_util.py: aotsxy2pix
+        ref_aotsx = 1.820 * u.mm  # hard-code
+        ref_aotsy = -11.130 * u.mm # hard-code
+        tt_stage_scale = 0.727 * (u.mm / u.arcsec) # maybe for NIRC2 only? Should be 0.725? https://www2.keck.hawaii.edu/observing/kecktelgde/ktelinstupdate.pdf
+        row_vals['aotsx'] = _safe_get(inst.get_aotsx, hdr, u.mm)
+        row_vals['aotsy'] = _safe_get(inst.get_aotsy, hdr, u.mm)
+        dx = (row_vals['aotsx'] - ref_aotsx) / tt_stage_scale
+        dy = (row_vals['aotsy'] - ref_aotsy) / tt_stage_scale
+        row_vals['tip_tilt_radial_offset'] = np.sqrt(dx**2 + dy**2)
+        cosa = np.cos(np.radians(-row_vals['instrument_angle']))
+        sina = np.sin(np.radians(-row_vals['instrument_angle']))
+        rot_matrix = np.array([[cosa, sina], [-sina, cosa]])
+        unrotated_position_vector = np.array([dx.to_value(u.arcsec), dy.to_value(u.arcsec)]) * u.arcsec
+        rotated_position_vector = rot_matrix.dot(unrotated_position_vector)
+        row_vals['tt_star_offset_x'] = rotated_position_vector[0]
+        row_vals['tt_star_offset_y'] = rotated_position_vector[1]
+
         row_vals['lgs_rms_wfe'] = inst.get_lgs_rms_wfe(hdr) * u.nm
         row_vals['lgs_layer_alt'] = inst.get_lgs_layer_altitude(hdr) * u.m
         row_vals['lbwfs_fwhm'] = _safe_get(inst.get_lbwfs_fwhm, hdr, u.arcsec)
@@ -197,7 +220,7 @@ def build_observation_table(
         row_vals['dtt_gain'] = inst.get_dtt_gain(hdr)
         row_vals['ao_mode'] = inst.get_ao_mode(hdr)
         row_vals['ao_hatch_open'] = inst.was_AO_hatch_open(hdr)
-        row_vals['tt_gs_r_mag'] = get_tt_guide_star_r_mag(p, row_vals['t_exposure_start'], row_vals['t_exposure_duration'])
+        row_vals['tt_gs_r_mag'] = get_tt_guide_star_r_mag(p)
 
         ### Detector information ###
         row_vals['lgs_wfs_detector_gain'] = inst.get_lgs_wfs_detector_gain(hdr)
@@ -221,7 +244,54 @@ def build_observation_table(
         telem_files = read_image_telemetry(telemetry_file, verbose=True)
         ocam2k = load_ocam2k_data(telem_files)
         row_vals['num_lgs_wfs'] = 4 if has_four_lgs_data(ocam2k) else 1 # Either in LGS with 1 WFS or KAPA/LTAO with 4
+        
+        # Calculate signal and background levels for each LGS WFS based on telemetry, if possible. If not, leave as masked.
+        if has_four_lgs_data(ocam2k):
+            # NOTE: Using convention where I append the unit and then shape of arrays to the end of variable names.
+            # So arr_s_X_Y means it's size (X, Y) and unit seconds
+            # Get the mean electrons read per subaperture per frame for each subaperture across all 4 WFSs as well as the standard
+            # deviation of the electrons read per subaperture per frame for each subaperture across all 4 WFSs. Both should have shape (4, 304)
+            # and units of electrons per read although the units of the stds is really sqrt(e-^2 variance)
+            sensor_mean_electrons_4_304, sensor_stds_electrons_4_304 = compute_aperture_wise_electron_stats(ocam2k, row_vals)
 
+            # Break the subapertures into a bright and dim population based on the 20th percentile signal level
+            # We do this because empirically on all of the telemetry we've looked at, there are some 'less illuminated'
+            # subapertures around the edges of the subap mask that don't have nearly as many electrons as the more fully
+            # illuminated subapertures and we want to make sure we treat the ones which get electrons as having a signal
+            # and the ones which don't as not having a signal. The 20th percentile has worked well before
+            thresh = 20 # Use 20th percentile
+            
+            # Get the indices of the lit and unlit subapertures 
+            row_vals['unlit_subap_indices'] = get_unlit_data_indices_for_all_wfs(sensor_mean_electrons_4_304, thresh=thresh)
+            row_vals['lit_subap_indices'] = get_lit_data_indices_for_all_wfs(sensor_mean_electrons_4_304, thresh=thresh)
+
+            # Calculate the median signal level from the dim and bright subapertures respectively for each WFS
+            _, median_bright_mean_e_4 = compute_median_values_for_all_wfs(sensor_mean_electrons_4_304, thresh=thresh, unlit_data_indices_for_all_wfs=row_vals['unlit_subap_indices'], lit_data_indices_for_all_wfs=row_vals['lit_subap_indices'])
+            median_bright_mean_e_4 = turn_list_of_quantities_into_quantity_array(median_bright_mean_e_4)
+
+            # Calculate the standard deviation of signal levels from the dim and bright subapertures respectively for each WFS
+            # This tells us about the noise of each pixel
+            median_dim_std_e_4, _ = compute_median_values_for_all_wfs(sensor_stds_electrons_4_304, thresh=20, unlit_data_indices_for_all_wfs=row_vals['unlit_subap_indices'], lit_data_indices_for_all_wfs=row_vals['lit_subap_indices'])
+            median_dim_std_e_4 = turn_list_of_quantities_into_quantity_array(median_dim_std_e_4)
+
+            # Signal level is in electrons (electrons = photons for us) per subaperture per frame
+            row_vals['lgs_wfs_signal_levels'] = median_bright_mean_e_4
+            row_vals['avg_lgs_wfs_signal_level'] = np.mean(median_bright_mean_e_4)
+
+            # Compute background levels based on the dim subapertures. We want these values in number of electrons per pixel per
+            # frame coming from the background. Each subaperture has 4x4 = 16 pixels. For each pixel of a dim subap, we expect the total
+            # noise sigma^2_pixel = N_electrons + RN^2 where N_electrons is the number of background sky and dark electrons and RN is the read noise in electrons.
+            # We use N_electrons instead of sigma^2_electrons because we expect the these electrons to have Poisson statistics where sigma^2_electrons = N_electrons
+            # We assume RN = 0.36 electrons based on KAON 1337. Thus for the whole subap, sigma^2_subap = 16 * (N_electrons + RN^2)
+            # sigma_subap, the total noise in each subap, is in median_dim_std_e_4 for each WFS. Now we can rearrange the equation to solve for N_electrons:
+            # N_electrons = ((sigma^2_subap / 16) - RN^2). We could do this / F^2 where F is the extra noise factor from the OCAM2k EMCCD gain, but since we're directly
+            # measuring N_electrons we don't have to care about this - it's baked into our measurement of sigma^2_subap 
+            RN = 0.36 * u.electron # Read noise
+            pix_per_subap_side = 4
+            pix_per_subap = pix_per_subap_side**2
+            row_vals['lgs_wfs_background_levels'] = ((median_dim_std_e_4**2 / pix_per_subap) - RN**2).to_value(u.electron * u.electron) * u.electron # Because of Poisson, units of N = units of N^2 :|
+            row_vals['avg_lgs_wfs_background_level'] = np.mean(row_vals['lgs_wfs_background_levels'])
+        
         # Weather handling
         on_sky_fits_file_path = str(row_vals['image_path'])
         folder_with_on_sky_data = "/u/nstieg/work/ao/keck/massdimm/"
@@ -229,12 +299,16 @@ def build_observation_table(
         r0, turbulence_profile, wind_speed_profile, wind_direction_profile, _, _, _, _, tau0, theta0, _ = on_sky_conditions
 
         # Put weather data in row
-        row_vals['r0'] = r0 * u.m
+        row_vals['r0'] = r0 # already in meters
         row_vals['turbulence_profile'] = turbulence_profile
         row_vals['wind_speed_profile'] = wind_speed_profile * (u.m / u.s)
         row_vals['wind_direction_profile'] = wind_direction_profile * u.deg
         row_vals['tau0'] = tau0 * u.s
         row_vals['theta0'] = theta0 * u.arcsec
+
+        # Fix any rows which may be uneven since if a column of the table has a list of arrays, all the arrays need to be the same length (so I'll turn them into 2d arrays)
+        row_vals['unlit_subap_indices'] = fill_in_uneven_list_of_arrays(row_vals['unlit_subap_indices']) if row_vals['unlit_subap_indices'] is not np.ma.masked else np.ma.masked
+        row_vals['lit_subap_indices'] = fill_in_uneven_list_of_arrays(row_vals['lit_subap_indices']) if row_vals['lit_subap_indices'] is not np.ma.masked else np.ma.masked
 
         # Put in the table
         new_rows.append(row_vals)
@@ -254,3 +328,34 @@ def build_observation_table(
         out = new_table
 
     return out
+
+
+def turn_list_of_quantities_into_quantity_array(list_of_quantities):
+    """
+    Helper function to turn a list of astropy Quantities into a single Quantity with an array value.
+
+    :param list_of_quantities: List of astropy Quantities, all with the same unit.
+    :type list_of_quantities: astropy.units.quantity.Quantity array-like
+    :return: An astropy Quantity with an array value containing the values from the input list, all converted to the specified unit.
+    :rtype: astropy.units.Quantity
+    """
+    assert list_of_quantities, "Input list of quantities is empty"
+    assert( hasattr(list_of_quantities[0], 'unit') ), "Elements of input list must be astropy Quantities with units"
+    unit = list_of_quantities[0].unit
+    values = [q.to(unit).value for q in list_of_quantities]
+    return np.array(values) * unit
+
+def fill_in_uneven_list_of_arrays(list_of_arrays):
+    """
+    Helper function to turn a list of 1D numpy arrays of different lengths into a 2D numpy array where the shorter arrays are filled with np.nan values at the end to match the length of the longest array.
+
+    :param list_of_arrays: List of 1D numpy arrays of different lengths.
+    :type list_of_arrays: list of numpy.ndarray
+    :return: A 2D numpy array where the shorter arrays are filled with np.nan values at the end to match the length of the longest array.
+    :rtype: numpy.ndarray
+    """
+    max_length = max(len(arr) for arr in list_of_arrays)
+    filled_array = np.full((len(list_of_arrays), max_length), np.nan)
+    for i, arr in enumerate(list_of_arrays):
+        filled_array[i, :len(arr)] = arr
+    return filled_array

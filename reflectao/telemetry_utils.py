@@ -22,6 +22,8 @@ from astropy.io import fits
 import paarti.utils.maos_utils as mu
 import warnings
 from astropy.utils.exceptions import AstropyUserWarning
+from kai.instruments import OSIRIS
+
 
 ### Useful References ###
 
@@ -663,37 +665,54 @@ def get_xinetics_data(telem_files):
     xinetics = np.load(telem_files[xinetics_loc])
     return xinetics
 
-def get_tt_guide_star_r_mag(image_path, t_exposure_start, t_exposure_duration):
+def get_tt_guide_star_r_mag(image_path):
     """
     Get the tip tilt guide star apparent R band magnitude from the LBWFS image headers
 
     :param image_path: The path to the observed image fits file
     :type image_path: pathlib.Path or str
-    :param t_exposure_start: The UTC start time of the exposure
-    :type t_exposure_start: astropy Time 
-    :param t_exposure_duration: The duration of the exposure in seconds
-    :type t_exposure_duration: float
     :return: The apparent R band magnitude of the tip tilt guide star
+    :rtype: float
     """
 
     # Check params
     assert(isinstance(image_path, (Path, str))), "image_path must be a pathlib.Path or string"
-    assert(isinstance(t_exposure_start, Time)), "t_exposure_start must be an astropy Time object"
-    assert(isinstance(t_exposure_duration, (int, float, u.quantity.Quantity))), "t_exposure_duration must be a number"
-    if not isinstance(t_exposure_duration, (u.quantity.Quantity)):
-        t_exposure_duration = t_exposure_duration * u.s
+
+    # Find the corresponding lbwfs image
+    closest_file = find_lbwfs_image(image_path)
+
+    # Load the header of the closest file and get the R band magnitude of the tip tilt guide star
+    with warnings.catch_warnings(): # Ignore warnings about non-standard convention on AOFCLBF0 keyword in the lbwfs headers
+        warnings.filterwarnings("ignore", category=AstropyUserWarning)
+        closest_file_hdr = fits.getheader(closest_file)
+
+    return closest_file_hdr['LGTTRMAG']
+
+def find_lbwfs_image(image_path):
+    """
+    Find the corresponding lbwfs image for a given image path
+
+    :param image_path: The path to the observed image fits file
+    :type image_path: pathlib.Path or str
+    :return: The path to the corresponding lbwfs image
+    :rtype: pathlib.Path
+    """
 
     # Get location of lbwfs images
     if isinstance(image_path, str):
         image_path = Path(image_path)
     dir = get_lbwfs_folder_path_from_image_path(image_path)
 
+    # get exposure times from the image header
+    hdr = fits.getheader(image_path)
+
+    # Get the UTC start time of the exposure
+    inst = OSIRIS()
+    t_exposure_start = Time(f'{inst.get_exposure_start_date(hdr)} {inst.get_exposure_start_time(hdr)}', scale='utc') 
+    t_exposure_duration = inst.get_exposure_duration(hdr) * u.s
+
     # Get the UTC end time of the exposure
     t_exposure_end = t_exposure_start + t_exposure_duration
-
-    print("Want to find between")
-    print("Start", t_exposure_start)
-    print("End", t_exposure_end)
 
     # Get all names of lbwfs images
     lbwfs_image_files = sorted(dir.glob("*.fits.gz"))
@@ -709,16 +728,13 @@ def get_tt_guide_star_r_mag(image_path, t_exposure_start, t_exposure_duration):
             warnings.filterwarnings("ignore", category=AstropyUserWarning)
             mid_hdr = fits.getheader(mid_file)
         mid_time = Time(f'{mid_hdr["DATE"]} {mid_hdr["UTC"]}', scale='utc')
-        # print("Mid", mid_time)
 
         if t_exposure_start <= mid_time <= t_exposure_end:
             closest_file = mid_file
             break
         elif mid_time < t_exposure_start:
-            # print("Too early, going later")
             left = mid + 1
         else:
-            # print("Too late, going earlier")
             right = mid - 1
 
     # Check to make sure we found a file
@@ -729,8 +745,6 @@ def get_tt_guide_star_r_mag(image_path, t_exposure_start, t_exposure_duration):
             left_time = Time(f'{fits.getheader(lbwfs_image_files[left])["DATE"]} {fits.getheader(lbwfs_image_files[left])["UTC"]}', scale='utc') if left < len(lbwfs_image_files) else None
             right_time = Time(f'{fits.getheader(lbwfs_image_files[right])["DATE"]} {fits.getheader(lbwfs_image_files[right])["UTC"]}', scale='utc') if right >= 0 else None
         if left_time and right_time:
-            # print("Left time", left_time)
-            # print("Right time", right_time)
             if abs(left_time - t_exposure_start) < abs(right_time - t_exposure_end):
                 closest_file = lbwfs_image_files[left]
             else:
@@ -742,12 +756,7 @@ def get_tt_guide_star_r_mag(image_path, t_exposure_start, t_exposure_duration):
         else:
             raise ValueError("No lbwfs image files found in directory")
 
-    # Load the header of the closest file and get the R band magnitude of the tip tilt guide star
-    with warnings.catch_warnings(): # Ignore warnings about non-standard convention on AOFCLBF0 keyword in the lbwfs headers
-        warnings.filterwarnings("ignore", category=AstropyUserWarning)
-        closest_file_hdr = fits.getheader(closest_file)
-
-    return closest_file_hdr['LGTTRMAG']
+    return closest_file
 
 def get_lbwfs_folder_path_from_image_path(image_path):
     """
@@ -992,7 +1001,7 @@ def read_ocam2k_background(path):
 
 ### Data Processing Helper Functions ###
 
-def compute_median_values(data, thresh=20):
+def compute_median_values(data, thresh=20, unlit_data_indices=None, lit_data_indices=None):
     """
     Compute median lit subaperture and unlit subaperture values across
     all 304 subapertures on a single WFS. The cutoff between the lit and unlit
@@ -1006,6 +1015,10 @@ def compute_median_values(data, thresh=20):
     :type data: numpy.ndarray or list
     :param thresh: The percentile threshold for separating lit and unlit subapertures
     :type thresh: int or float
+    :param unlit_data_indices: Optional pre-computed indices of the unlit subapertures. If provided, these will be used instead of computing them from the data and thresh parameter.
+    :type unlit_data_indices: numpy.ndarray or list of ints
+    :param lit_data_indices: Optional pre-computed indices of the lit subapertures. If provided, these will be used instead of computing them from the data and thresh parameter.
+    :type lit_data_indices: numpy.ndarray or list of ints
     :return: A tuple of (median_unlit_intensity, median_lit_intensity)
     :rtype: tuple
     """
@@ -1018,8 +1031,12 @@ def compute_median_values(data, thresh=20):
 
     # Split the data into lit and unlit subapertures based on the threshold percentile
     thresh = np.percentile(data, thresh)
-    lit_data = data[data > thresh]
-    unlit_data = data[data <= thresh]
+    if unlit_data_indices is not None and lit_data_indices is not None:
+        lit_data = data[lit_data_indices]
+        unlit_data = data[unlit_data_indices]
+    else:
+        lit_data = data[data > thresh]
+        unlit_data = data[data <= thresh]
 
     # Get the medians
     median_lit_intensity = np.median(lit_data)
@@ -1028,7 +1045,59 @@ def compute_median_values(data, thresh=20):
     # Return final values
     return median_unlit_intensity, median_lit_intensity
 
-def compute_median_values_for_all_wfs(data, thresh=20):
+def get_unlit_data_indices(data, thresh=20):
+    """
+    Get the indices of the unlit subapertures based on the threshold percentile
+
+    :param data: A numpy array or list of subaperture intensities for a single WFS, with length 304
+    :type data: numpy.ndarray or list
+    :param thresh: The percentile threshold for separating lit and unlit subapertures
+    :type thresh: int or float
+    :return: A numpy array of the indices of the unlit subapertures
+    :rtype: numpy.ndarray
+    """
+
+    # Verify inputs
+    assert(isinstance(data, (np.ndarray, list))), "data must be a numpy array or list"
+    assert(len(data) == 304), f"data must have length 304, got {len(data)}"
+    assert(isinstance(thresh, (int, float))), "thresh must be an int or float"
+    assert(thresh >= 0 and thresh <= 100), "thresh must be a percentile between 0 and 100"
+
+    # Get threshold value
+    thresh_value = np.percentile(data, thresh)
+
+    # Get indices of unlit subapertures
+    unlit_indices = np.where(data <= thresh_value)[0]
+
+    return unlit_indices
+
+def get_lit_data_indices(data, thresh=20):
+    """
+    Get the indices of the lit subapertures based on the threshold percentile
+
+    :param data: A numpy array or list of subaperture intensities for a single WFS, with length 304
+    :type data: numpy.ndarray or list
+    :param thresh: The percentile threshold for separating lit and unlit subapertures
+    :type thresh: int or float
+    :return: A numpy array of the indices of the lit subapertures
+    :rtype: numpy.ndarray
+    """
+
+    # Verify inputs
+    assert(isinstance(data, (np.ndarray, list))), "data must be a numpy array or list"
+    assert(len(data) == 304), f"data must have length 304, got {len(data)}"
+    assert(isinstance(thresh, (int, float))), "thresh must be an int or float"
+    assert(thresh >= 0 and thresh <= 100), "thresh must be a percentile between 0 and 100"
+
+    # Get threshold value
+    thresh_value = np.percentile(data, thresh)
+
+    # Get indices of lit subapertures
+    lit_indices = np.where(data > thresh_value)[0]
+
+    return lit_indices
+
+def compute_median_values_for_all_wfs(data, thresh=20, unlit_data_indices_for_all_wfs=None, lit_data_indices_for_all_wfs=None):
     """
     Compute median lit subaperture and unlit subaperture values across
     all 304 subapertures on all 4 WFSs. The cutoff between the lit and unlit
@@ -1041,6 +1110,10 @@ def compute_median_values_for_all_wfs(data, thresh=20):
     :param data: A list of numpy arrays, each containing the data for a single WFS with length 304, or a numpy array of shape (4, 304) where the first dimension corresponds to the WFS number and the second dimension corresponds to the subapertures. 
     :param thresh: The percentile threshold for separating lit and unlit subapertures
     :type thresh: int or float
+    :param unlit_data_indices: Optional pre-computed indices of the unlit subapertures
+    :type unlit_data_indices: list of numpy.ndarray
+    :param lit_data_indices: Optional pre-computed indices of the lit subapertures
+    :type lit_data_indices: list of numpy.ndarray
     :return: A tuple of (median_unlit_values, median_lit_values) where each is a list of length 4 containing the median unlit and lit values for each WFS respectively
     :rtype: tuple of (list, list)
 
@@ -1063,11 +1136,77 @@ def compute_median_values_for_all_wfs(data, thresh=20):
     median_lit_values = []    
     for wfs_number in range(1, 5):
         wfs_index = wfs_number - 1
-        median_unlit_val, median_lit_val = compute_median_values(data[wfs_index], thresh)
+        unlit_data_indices_for_wfs = unlit_data_indices_for_all_wfs[wfs_index] if unlit_data_indices_for_all_wfs is not None else None
+        lit_data_indices_for_wfs = lit_data_indices_for_all_wfs[wfs_index] if lit_data_indices_for_all_wfs is not None else None
+        median_unlit_val, median_lit_val = compute_median_values(data[wfs_index], thresh, unlit_data_indices=unlit_data_indices_for_wfs, lit_data_indices=lit_data_indices_for_wfs)
         median_unlit_values.append(median_unlit_val)
         median_lit_values.append(median_lit_val)
 
     return median_unlit_values, median_lit_values
+
+def get_unlit_data_indices_for_all_wfs(data, thresh=20):
+    """
+    Get the indices of the unlit subapertures for all 4 WFSs based on the threshold percentile
+
+    :param data: A numpy array or list of subaperture intensities for all 4 WFSs, with shape (4, 304)
+    :type data: numpy.ndarray or list
+    :param thresh: The percentile threshold for separating lit and unlit subapertures
+    :type thresh: int or float
+    :return: A list of numpy arrays, each containing the indices of the unlit subapertures for a single WFS
+    :rtype: list of numpy.ndarray
+    """
+
+    # Verify inputs
+    assert(isinstance(data, (np.ndarray, list))), "data must be a numpy array or list"
+    if isinstance(data, list):
+        assert(len(data) == 4), "data must be a list of 4 numpy arrays"
+        for d in data:
+            assert(len(d) == 304), "each array in data must have length 304"
+    elif isinstance(data, np.ndarray):
+        assert(data.shape == (4, 304)), "data must be a numpy array of shape (4, 304)"
+    assert(isinstance(thresh, (int, float))), "thresh must be an int or float"
+    assert(thresh >= 0 and thresh <= 100), "thresh must be a percentile between 0 and 100"
+
+    # Loop over all 4 WFSs and get unlit data indices for each
+    unlit_indices = []
+    for wfs_number in range(1, 5):
+        wfs_index = wfs_number - 1
+        unlit_idx = get_unlit_data_indices(data[wfs_index], thresh)
+        unlit_indices.append(unlit_idx)
+
+    return unlit_indices
+
+def get_lit_data_indices_for_all_wfs(data, thresh=20):
+    """
+    Get the indices of the lit subapertures for all 4 WFSs based on the threshold percentile
+
+    :param data: A numpy array or list of subaperture intensities for all 4 WFSs, with shape (4, 304)
+    :type data: numpy.ndarray or list
+    :param thresh: The percentile threshold for separating lit and unlit subapertures
+    :type thresh: int or float
+    :return: A list of numpy arrays, each containing the indices of the lit subapertures for a single WFS
+    :rtype: list of numpy.ndarray
+    """
+
+    # Verify inputs
+    assert(isinstance(data, (np.ndarray, list))), "data must be a numpy array or list"
+    if isinstance(data, list):
+        assert(len(data) == 4), "data must be a list of 4 numpy arrays"
+        for d in data:
+            assert(len(d) == 304), "each array in data must have length 304"
+    elif isinstance(data, np.ndarray):
+        assert(data.shape == (4, 304)), "data must be a numpy array of shape (4, 304)"
+    assert(isinstance(thresh, (int, float))), "thresh must be an int or float"
+    assert(thresh >= 0 and thresh <= 100), "thresh must be a percentile between 0 and 100"
+
+    # Loop over all 4 WFSs and get lit data indices for each
+    lit_indices = []
+    for wfs_number in range(1, 5):
+        wfs_index = wfs_number - 1
+        lit_idx = get_lit_data_indices(data[wfs_index], thresh)
+        lit_indices.append(lit_idx)
+
+    return lit_indices
 
 def compute_aperture_wise_electron_stats(ocam2k, hdr_tbl):
     """
@@ -1078,7 +1217,7 @@ def compute_aperture_wise_electron_stats(ocam2k, hdr_tbl):
     :param ocam2k: The ocam2k telemetry data loaded from the .npy file, as a numpy.lib.npyio.NpzFile
     :type ocam2k: numpy.lib.npyio.NpzFile
     :param hdr_tbl: The header table loaded from the observed image fits file, as an astropy Table
-    :type hdr_tbl: astropy.table.Table
+    :type hdr_tbl: astropy.table.Table, Row, or dictionary-like object with keys 'lgs_wfs_rate' and 't_exposure_start'
     :return: A tuple of (sensor_mean_electrons, sensor_stds_electrons) where each is a numpy array with shape (4, 304) and units of electrons per read of the mean and standard deviation respectively
     :rtype: tuple of (numpy.ndarray, numpy.ndarray)
     """
@@ -1091,9 +1230,9 @@ def compute_aperture_wise_electron_stats(ocam2k, hdr_tbl):
         assert(isinstance(ocam2k[key], np.ndarray)), f"ocam2k[{key}] must be a numpy array"
         assert(ocam2k[key].ndim == 2), f"ocam2k[{key}] must be a 2D numpy array with shape (num_frames, 304), got shape {ocam2k[key].shape}"
         assert(ocam2k[key].shape[1] == 304), f"ocam2k[{key}] must have shape (num_frames, 304), got shape {ocam2k[key].shape}"
-    assert(isinstance(hdr_tbl, (Table, Row))), "hdr_tbl must be an astropy Table or Row"
-    assert('lgs_wfs_rate' in hdr_tbl.columns), "hdr_tbl must contain column 'lgs_wfs_rate', the frame rate of the camera"
-    assert('t_exposure_start' in hdr_tbl.columns), "hdr_tbl must contain column 't_exposure_start', the start time of the exposure"
+    assert(isinstance(hdr_tbl, (Table, Row, dict))), "hdr_tbl must be an astropy Table or Row"
+    assert('lgs_wfs_rate' in hdr_tbl), "hdr_tbl must contain key 'lgs_wfs_rate', the frame rate of the camera"
+    assert('t_exposure_start' in hdr_tbl), "hdr_tbl must contain key 't_exposure_start', the start time of the exposure"
 
     # Get date of observation
     if isinstance(hdr_tbl, Table):

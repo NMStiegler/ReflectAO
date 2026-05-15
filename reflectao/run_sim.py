@@ -1,188 +1,198 @@
 import numpy as np
 import astropy.units as u
 import os
+from pathlib import Path
 import paarti.utils.maos_utils as mu
 import reflectao.telemetry_utils as tu
 import reflectao.kapa_utils as ku
 import reflectao.schema as schema
 
-def run_maos_sim(hdr_tbl_row):
+def run_maos_sim(hdr_tbl_row, seeds=[1]):
     ### Ensure that hdr_tbl_row is a row of the build_observation_table table
     schema.validate_table_has_schema(hdr_tbl_row, allow_extra_columns=True)
 
     ### Setup simulation parameters
     # Figure out the shortest time interval we need to simulate
-    shwfs_int_time = (1.0 / hdr_tbl_row['lgs_wfs_rate']).to(u.s)
+    lgs_wfs_int_time = (1.0 / hdr_tbl_row['lgs_wfs_rate']).to(u.s)
     tt_int_time = (1.0 / hdr_tbl_row['tt_wfs_rate']).to(u.s) # STRAP or TRICK are tip tilt (tt) on Keck I. Assuming if TRICK is being used that no light goes to STRAP
     lbwfs_int_time = 15 * u.s # We set this equal to 15s because we simulate < 15s and so this doesn't matter. SHould be at least 10s (KAON 1303), with longer integrations for fainter guide stars
     max_frame_rate = max(hdr_tbl_row['lgs_wfs_rate'], hdr_tbl_row['tt_wfs_rate']) 
     sim_dt = (1.0 / max_frame_rate).to(u.s) # Set sim_dt to fastest WFS readout rate in Hz 
-    
+    sim_dtref = sim_dt
+    sim_end_steps = int((2.0 * u.s / sim_dt).to_value(u.dimensionless_unscaled))
+
     # Set dtrats (ratio of sample period over dt, must be an integer)
-    howfs_dtrat = sim_dt / shwfs_int_time
-    tt_dtrat = sim_dt / tt_int_time
-    lbwfs_dtrat = sim_dt / lbwfs_int_time
+    howfs_dtrat = (lgs_wfs_int_time / sim_dt).to_value(u.dimensionless_unscaled)
+    tt_dtrat = (tt_int_time / sim_dt).to_value(u.dimensionless_unscaled)
+    lbwfs_dtrat = (lbwfs_int_time / sim_dt).to_value(u.dimensionless_unscaled)
+    powfs_dtrat_array = [int(howfs_dtrat), int(tt_dtrat), int(lbwfs_dtrat)] # To put in MAOS params
 
     # Check to make sure the dtrats are valid
     def check_dtrats(dtrat, name):
-        assert dtrat.is_integer(), f"{name} must be an integer"
-        assert dtrat > 0, f"{name} must be positive"
+        assert dtrat.is_integer(), f"{name} must be an integer. Currently {dtrat}. sim-dt: {sim_dt} and {name}_int_time: {lgs_wfs_int_time if 'howfs' in name else tt_int_time if 'tt' in name else lbwfs_int_time} must be set such that their ratio is an integer."
+        assert dtrat > 0, f"{name} must be positive. Currently {dtrat}"
     check_dtrats(howfs_dtrat, "howfs_dtrat")
     check_dtrats(tt_dtrat, "tt_dtrat")
     check_dtrats(lbwfs_dtrat, "lbwfs_dtrat")
-
-    # To put in the simulation parameters
-    powfs_dtrat_array = [int(howfs_dtrat), int(tt_dtrat), int(lbwfs_dtrat)]
-
-    # Calculate signal level (siglev), background (bkgrnd) and noise equivalent angle
-    # parameters
-    # TODO: Does this change if we have 4 vs. 1 LGS?
-    num_LGS = hdr_tbl_row['num_lgs_wfs']
     
+    # Set WFS names    
     lgs_wfs_name = 'LGSWFS-OCAM2K' # For KAPA on Keck 1 5/5/26
     tt_wfs_name = ('TRICK' if 'trick' in str(hdr_tbl_row['OSIRIS_tt_sensor']).lower() else 'STRAP')
-    # TODO: powfs.wvl [lgs, tt, truth] should change based on TRICK-H vs. TRICK-K
+    
+    # Set wavelengths for the WFSs. Note that if the science camera is in H-band, then TRICK uses K-band and vice versa
+    powfs_wvl_array = [589e-9, 720e-9, 720e-9] # Note H band is ~1.6um and K is ~2.1um (1.6383e-6 & 2.1145e-6 meters for Hbb & Kp)
     if tt_wfs_name == 'TRICK':
         if hdr_tbl_row['wavelength'] > 2.1 * u.micron:
             tt_wfs_name = 'TRICK-H' # We're in K band (~2.12 micron) so TRICK is taking the H-band
+            powfs_wvl_array[1] = 1.6383e-6  # H band
         else:
             tt_wfs_name = 'TRICK-K' # vice versa
-    
-    # Get data from lbwfs
-    lbwfs_fwhm = hdr_tbl_row['lbwfs_fwhm']
-    guide_star_magnitude = hdr_tbl_row['tt_gs_r_mag']
-    
-    r0 = hdr_tbl_row['r0']
-    
-    # Note, I think nearecon only matters for tip-tilt since it uses geometric 
-    # not physical optics, but the signal levels & backgrounds are important still
-    """
-    SNR
-        Not used
-    
-    sigma_theta : float
-        Noise-equivalent angle in milliarcsec
-    
-    Np          : float
-        Number of photons from the star per pixel within subaperture # TODO Note MAOS expects e-/subap/frame
+            powfs_wvl_array[1] = 2.1145e-6  # K band
 
-    Nb          : float
-        Number of background photons per pixel within subaperture111
+    # Get data from lbwfs header
+    lbwfs_fwhm = hdr_tbl_row['lbwfs_fwhm'].to_value(u.arcsec)
+    ngs_guide_star_magnitude = hdr_tbl_row['tt_gs_r_mag']
     
-    """
-    _, howfs_nearecon, howfs_siglev, howfs_bkgrnd = mu.keck_nea_photons(guide_star_magnitude, lgs_wfs_name,
-                                                                        r0, shwfs_int_time.to_value(u.s))
-    _, tt_nearecon, tt_siglev, tt_bkgrnd = mu.keck_nea_photons(guide_star_magnitude, tt_wfs_name, 
-                                                                        r0, tt_int_time.to_value(u.s))
-    _, lbwfs_nearecon, lbwfs_siglev, lbwfs_bkgrnd = mu.keck_nea_photons(guide_star_magnitude, 'LBWFS',
-                                                                        r0, lbwfs_int_time.to_value(u.s),
+    # Define atmospheric properties
+    brooke_atm_data_heights = np.array([100.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0]) # Heights that Brooke's code gets the atmospheric profiles at
+    r0z = hdr_tbl_row['r0'].to_value(u.m) # <-- Estimated from atmospheric telemetry
+
+    # Calculate signal level (siglev), background (bkgrnd) and noise equivalent angle
+    # parameters
+    # NOTE: 8.1 and 10.4 kinda suck as estimates which is why we try to use telemetry if available
+    # Luckily this only effects the HOWFS (LGS WFS) since we measure the tip tilt star magnitude
+    # with the LBWFS
+    num_LGS = hdr_tbl_row['num_lgs_wfs']
+    if num_LGS == 1:
+        lgs_guide_star_magnitude = 8.1 # Brooke has 8.1 for SLGS. Maybe this would be brighter now?
+    else:
+        lgs_guide_star_magnitude = 10.4 # For 4 LGS, the guide star is dimmer since the light is split. 
+                                        # Based on some very rough estimates from averaged telemetry. 
+                                        # See /Users/nstieg/work/ao/keck/kapa/telemetry/ocam2k/keck_nea_photon_investigation.ipynb
+
+    # Get nearecon, siglev, and background (scaled by dtref)
+    _, howfs_nearecon, howfs_siglev, howfs_bkgrnd = mu.keck_nea_photons(lgs_guide_star_magnitude, lgs_wfs_name,
+                                                                        r0z, sim_dtref.to_value(u.s))
+    _, tt_nearecon, tt_siglev, tt_bkgrnd = mu.keck_nea_photons(ngs_guide_star_magnitude, tt_wfs_name, 
+                                                                        r0z, sim_dtref.to_value(u.s))
+    _, lbwfs_nearecon, lbwfs_siglev, lbwfs_bkgrnd = mu.keck_nea_photons(ngs_guide_star_magnitude, 'LBWFS',
+                                                                        r0z, sim_dtref.to_value(u.s),
                                                                         lbwfs_fwhm=lbwfs_fwhm)
-    # TODO: make sure nearecon & siglev are correct
-    # Potentially just snag siglev from telemetry?
-    nearecon = [howfs_nearecon, tt_nearecon, lbwfs_nearecon] # nearecon is in milliarcseconds
-    siglev = [howfs_siglev, tt_siglev, lbwfs_siglev] # siglev is in number of photons from the star per pixel within subaperture
     
-    # KAPA is ~18.6e- / pixel (bias) @ 500Hz
-    # sky background in e/px/LGS frame
-    # TODO: Make sure background is OK
-    # Potentially just snag this from telemetry too?
+    # Noise equivalent angle. Not used for physical optics, only geometric. In milliarcseconds
+    # Since the tt-wfs is the only one that uses geometric optics this really only matters
+    # for it
+    nearecon = [howfs_nearecon, tt_nearecon, lbwfs_nearecon]
+
+    # Signal level (siglev) is in number of photons from the star per subaperture per dtref step (dtref ~ dt)
+    # powfs.siglev is photons/subaperture/dtref step
+    # can do powfs.siglevs (one for each WFS)
+    # NOTE: Gets changed if we're on KAPA based on telemetry
+    siglev = [howfs_siglev, tt_siglev, lbwfs_siglev]
+    individual_siglevs = None # Set this to a list of the individual signal levels for each WFS if we want to use those instead of the same siglev for all WFSs of the same type
+    
+    # powfs.bckgrnd is background in e-/pix/dtref step
+    # Maybe snag from telemetry eventually if we can
+    # NOTE: Gets changed if we're on KAPA based on telemetry
     bkgrnd = [howfs_bkgrnd, tt_bkgrnd, lbwfs_bkgrnd] # bkgrnd is in number of background photons per pixel within subaperture
+    individual_bkgrnd = None
+
+    # Make adjustments
+    if lgs_wfs_name == 'LGSWFS-OCAM2K':
+        OCAM2K_QE = 0.88 # Noted here, probably not used because we only care to simulate the photoelectrons we see
+        
+        # Put in signal level measured from telemetry
+        if num_LGS == 4: # LTAO
+            # See if we could get the signal & background level for each WFS from telemetry, otherwise use estimates
+            try:
+                # If using individual signal levels per WFS
+                individual_siglevs =  list(hdr_tbl_row['lgs_wfs_signal_levels'].to_value(u.electron)) + siglev[1:] # Get [siglev_wfs1, wfs2, wfs3, wfs4, tt_siglev, lbwfs_siglev]
+                
+                # If using individual background levels per WFS NOTE: Not supported in MAOS as of 5/15/26
+                # individual_bkgrnd = list(hdr_tbl_row['lgs_wfs_background_levels'].to_value(u.electron)) + bkgrnd[1:] # Get [bkgrnd_wfs1, wfs2, wfs3, wfs4, tt_bkgrnd, lbwfs_bkgrnd]
+                bkgrnd[0] = hdr_tbl_row['avg_lgs_wfs_background_level'].to_value(u.electron)
+            except Exception as e:
+                print(f"Error getting individual signal and background levels from telemetry: {e}. Using estimates instead.")
+                
+                # Use estimated average
+                signal_epers = 75e3 * (u.electron / u.second) # electrons per second per subaperture on average measured from fig. 14: https://docs.google.com/document/d/1YQNdJjWz2LFtnWaDdaJxFfnd-Dfjs9zw7nqB67q1gHM/edit?tab=t.0 
+                signal_photons = signal_epers * sim_dtref
+                siglev[0] = signal_photons.to_value(u.photon)
+
+                # 0.20 e-/px/frame estimated from the average sigma_subaperture values in fig. 14: https://docs.google.com/document/d/1YQNdJjWz2LFtnWaDdaJxFfnd-Dfjs9zw7nqB67q1gHM/edit?tab=t.0#heading=h.scqamqs3mj7m
+                bkgrnd[0] = 0.2 * (sim_dtref / (2 * u.ms)) # 0.20 is at 500Hz (2ms) so scale to sim_dtref
+
+            # Locate tip tilt star and laser guide stars
+            tt_x = lbwfs_x = hdr_tbl_row['tt_star_offset_x'].to_value(u.arcsec) # in arcsec -> note the LBWFS looks at the same NGS the tip tilt is looking at
+            tt_y = lbwfs_y = hdr_tbl_row['tt_star_offset_y'].to_value(u.arcsec) # in arcsec
+
+            # The LGS are on a 10 arcsec radius asterism, with a 7'' offset in the x direction to match on-sky KAPA
+            # Note the orderings of the WFSs matches the convention in https://docs.google.com/document/d/1YQNdJjWz2LFtnWaDdaJxFfnd-Dfjs9zw7nqB67q1gHM/edit?tab=t.0#heading=h.scqamqs3mj7m
+            wfs_thetax = f"[12.5 12.5 1.5 1.5 {tt_x} {lbwfs_x}]" # wfs.thetax coordinate in arcsec units
+            wfs_thetay = f"[5.5 -5.5 -5.5 5.5 {tt_y} {lbwfs_y}]" # wfs.thetay
+        else:
+            # TODO: Get estimates of the single LGS (non-KAPA) background & signal level
+            
+            # For 1 LGS, the LGS is on top of the tip tilt star, so the tt & LGS constellation are at the same place: [0 tt_x lbwfs_x] and same for y
+            tt_x = lbwfs_x = hdr_tbl_row['tt_star_offset_x'] # in arcsec -> note the LBWFS looks at the same NGS the tip tilt is looking at
+            tt_y = lbwfs_y = hdr_tbl_row['tt_star_offset_y'] # in arcsec
+            wfs_thetax = f"[0 {tt_x} {lbwfs_x}]"
+            wfs_thetay = f"[0 {tt_y} {lbwfs_y}]"
 
     # Setup final sim parameters
-
-    # TODO: Use AOTSX/Y (mm) & KAI to convert stage offset between center of FOV
-    # and tip tilt star - see kai/reduce/kai_util.py getaotsxy(hdr) or aotsxy2pix
-    # which is relative between two positions but has math we want (could use x y
-    # from engineering star as a base to offset from)
-    # ALso nted AOLB XY OFF for offset of LBWFS on NGS (unsure of units)
-    # RAOFF & DECOFF (some other kind of offset for dithering?)
-
-    # wfs.thetax/y is where the WFS is located on the sky I guess -> offset of TT NGS in arcsec
-    # So we'd change this for tip-tilt & lbwfs? or just tip tilt? does the lbwfs look at the laser spot?
-    # Note wfs.thetax = [-5.5, 5.5, -5.5, 5.5] + 7'' for LGS, wfs.thetay = [-5.5, -5.5, 5.5, 5.5]
-    # Yeah so we'd have wfs.thetax = [lgs1_x, lgs2_x, lgs3_x, lgs4_x, tt_x, lbwfs_x] and same for y I think
-    # TODO: Put LGS ones in MAOS but leave tt & lbwfs to adjust based on AOTSX/Y
-
-    # size = # psfsize should be ~1 arcsec in diameter (half arcsec radius). '
-    # Note 25mas pixel scale set automatically by maos to get psfsize (actually it scales I think?)
-    # size = ?
-
-    # Set reconstructor parameters for LTAO
     if num_LGS == 4:
-        # powfs.nwfs = [4, 1, 1] else [1, 1, 1]
-        
-        # What hte reconstructor thinks the atmosphere is
-        # atmr.r0 = 0.15 # Avinash note
-        # atmr.L0 = 30 # Avinash note
-        layeralt = [0.,500,1000,2000,4000,8000,16000] # atmr.ht
-        layerfrac = [0.4557,0.1295,0.0442,0.0506,0.1167,0.0926,0.1107] # atmr.wt
-        # atmr.ht = layeralt # Height of layers to reconstruct
-        # atmr.wt = layerfrac # Weight of layers to reconstruct
-        
-
-
-    # atmr.hs = ? # Height of high-order gs (LGS?) set to sodium layer height
-    # powfs.hs = ? # Height of guide star -> set to sodium layer height for LGS ones & inf for tt ones
+        conf_name = "A_keck_kapa_compare_sky_4lgs_template.conf"       
+    elif num_LGS == 1:
+        conf_name = "A_keck_kapa_compare_sky_1lgs_template.conf"
 
     # Final maos command
-    #TODO 
-    # - put sim.dt and sim.dtref in maos command. dt is fastest integration time, dtref is the dt of each wfs to use for unit scaling
-    # - make sure sim.zadeg (zenith angle) is set
-    # - powfs.siglev is e-/subaperture/dtref step (set based on telem?)
-    # - can do powfs.siglevs (one for each WFS). Note dtref is dt so it might be different than the LGS frame rate
-    # - powfs.rne is read noise in e-/pix/frame (set based on telem?)
-    # - powfs.bckgrnd is background in e-/pix/lgs frame (set based on telem?)
-    # - atm.wddeg from wind direction (degrees)
-    # - set powfs_dtrat_array s 
-    # - set num_LGS
-    # - sim.end to get 2s of on-sky time
-    # - set wavelength of observation evl.wvl
-    # - evl.psf & psfsize
-    # - make sure atm.r0z, etc are set from telemetry
+    # TODO:
+    # - recon.glao = 1 if GLAO mode (average gradient from WFS of same type)
+    # - define which subapertures are lit or not based on telemetry for each wfs (which feature in MAOS allows this?)
+    # - Get siglev & bkgrnd for single lgs mode from telemetry 
 
-    # atm.r0z from telemetry
-    # atm.ht
-    # atm.wt
-    # Check atm.ws & wddeg set in telemetry
-    # atm.ws
-    # atm.wddeg = [array] # set wind directions
-    # atm.wdrand = 0 if so (don't randomize wind directions)
+    # cd to the directory with the configurations
+    maos_configuration_path = Path("/Users/nstieg/work/ao/keck/maos/keck_maos/kapa/")
+    os.chdir(maos_configuration_path)
 
-    # recon.glao = 1 if GLAO mode (average gradient from WFS of same type)
-
-    
-
-def notes_from_run_maos_comp_to_sim_sky(hdr_tbl_row):
-
-    size = 256
-    mode = ''
-    if simtype == 'piston':
-        mode = 'piston'
-        surf_cmd = ["Keck_ncpa_rmswfe130nm.fits"]
-        # Fetch name of current input PSD FITS file in MAOS config file keck_sim.conf
-        psd_file = ''
-    elif simtype == 'psd+ncpa-seen':
-        mode = 'surf_wfs1'
-        # Revert NCPA surf back to Lianqi's default since tuned version is now extremely out of date/based on
-        # parameters that have been significantly changed
-
-        # surf_cmd = ["Keck_ncpa_rmswfe130nm.fits", "'r0=0.36;l0=3.39;ht=40000;slope=-2; SURFWFS=1; SURFEVL=1; seed=10;'"]
-        surf_cmd = ["Keck_ncpa_rmswfe130nm.fits", "'r0=0.1;l0=10;ht=40000;slope=-2; SURFWFS=1; SURFEVL=1; seed=10;'"]
-        psd_file = "PSD_Keck_ws26.47mas_vib26mas_rad2.fits"
-    elif simtype == 'psd+ncpa-unseen':
-        mode = 'surf_wfs0'
-        # Revert NCPA surf back to Lianqi's default since tuned version is now extremely out of date/based on
-        # parameters that have been significantly changed
-        # surf_cmd = ["Keck_ncpa_rmswfe130nm.fits", "'r0=0.36;l0=3.39;ht=40000;slope=-2; SURFWFS=0; SURFEVL=1; seed=10;'"]
-        surf_cmd = ["Keck_ncpa_rmswfe130nm.fits", "'r0=0.1;l0=10;ht=40000;slope=-2; SURFWFS=1; SURFEVL=1; seed=10;'"]
-        psd_file = "PSD_Keck_ws26.47mas_vib26mas_rad2.fits"
-    else:
-        raise ValueError(f"Invalid MAOS simulation type '{type}'. Valid types are currently: 'piston', 'psd+ncpa-seen', 'psd+ncpa-unseen'. See help() for further info")
-
+    # Run simulations for each seed (default just [1])
+    pp = print_array_maos_style # So we have array sprinting as [1 2 3] instead of [1, 2, 3] which is what MAOS expects
     for seed in seeds:
-        # Must be in MAOS simulation directory to run successfully
-        if os.getcwd() != baseroot.as_posix():
-            os.chdir(baseroot)
+        # Output the sim result to /g/lu/data/kapa/{night}/maos/{filename.fits}/A_...#LGS..._seed{seed}
+        image_path = Path(hdr_tbl_row['image_path'])
+        fits_filename = image_path.name
+        night = tu.get_night_from_fits_file_path(image_path)
+        out_dir = f"/g/lu/data/kapa/{night}/maos/{fits_filename}/{conf_name[:-5]}_seed{seed}/"
+        
+        # Create the output directory if it doesn't exist
+        out_dir_path = Path(out_dir)
+        out_dir_path.mkdir(parents=True, exist_ok=True)
 
-        maos_cmd = f"maos -o A_keck_scao_lgs_gc_{mode}_comp_{sky[0]}_seed{seed}_epoch{sky[1]} -c A_keck_scao_lgs_gc.conf evl.psfsize={size} sim.seeds={seed} evl.wvl={wvl} powfs.dtrat={dtrat} sim.zadeg={angle} powfs.siglev={siglev} powfs.bkgrnd={bkgrnd} powfs.nearecon={nearecon} sim.wspsd={psd_file} atm.r0z={fried.value} atm.wt={turbpro} atm.ws={windspds} atm.wddeg={winddrcts} surf={surf_cmd} -O"
-        os.system(maos_cmd)
+        # Get some data from the header table row
+        atm_wt = hdr_tbl_row['turbulence_profile']
+        atm_ws = hdr_tbl_row['wind_speed_profile'].to_value(u.m / u.s)
+        atm_wddeg = hdr_tbl_row['wind_direction_profile'].to_value(u.deg)
+        zenith_angle = hdr_tbl_row['zenith_angle']
+        na_layer_height = hdr_tbl_row['lgs_layer_alt'].to_value(u.m)
+
+        # Check if we're using individual signal levels and backgrounds based on telemetry or the fallback estimates
+        # If we have individual levels, we can set them with wfs.siglev & bkgrnd, otherwise we use powfs.siglev & background
+        # to set them for the whole group together (e.g. all 4 LGS WFSs get the same siglev if using powfs.siglev, but can have different siglevs if using wfs.siglev)
+        siglev_command_part = f"wfs.siglev={pp(individual_siglevs)}" if individual_siglevs is not None else f"powfs.siglev={pp(siglev)}"
+        bkgrnd_command_part = f"wfs.bkgrnd={pp(individual_bkgrnd)}" if individual_bkgrnd is not None else f"powfs.bkgrnd={pp(bkgrnd)}"
+
+        # Final maos command
+        maos_cmd = str(f"maos -c {conf_name} -o {out_dir}"
+                    f" sim.seeds={seed} sim.zadeg={zenith_angle.to_value(u.deg)}" # include spaces as they're not added automatically
+                    f" sim.dt={sim_dt.to_value(u.s)} sim.dtref={sim_dtref.to_value(u.s)} sim.end={sim_end_steps}"
+                    f" {siglev_command_part} {bkgrnd_command_part} powfs.nearecon={nearecon}"
+                    f" powfs.dtrat={pp(powfs_dtrat_array)} powfs.wvl={pp(powfs_wvl_array)}"
+                    f" wfs.thetax={wfs_thetax} wfs.thetay={wfs_thetay}"
+                    f" atm.r0z={r0z} atm.wt={atm_wt} atm.ws={atm_ws}"
+                    f" atm.wddeg={atm_wddeg} atm.ht={pp(brooke_atm_data_heights)}" 
+                    f" powfs.hs=[{na_layer_height} inf inf]"
+                    f" -O")
+    os.system(maos_cmd)
+
+def print_array_maos_style(list_or_array):
+    return "[" + " ".join([str(x) for x in list_or_array]) + "]"

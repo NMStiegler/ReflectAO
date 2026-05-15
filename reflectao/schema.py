@@ -54,6 +54,11 @@ SCHEMA = (
         meaning="Name of the instrument (distinct from the telescope or facility identifier).",
     ),
     ColumnDef(
+        name="instrument_angle",
+        unit="deg",
+        meaning="Angle of the instrument with respect to the AO bench, used to rotate the aotsx/y positions into the frame of reference of the science camera",
+    ),
+    ColumnDef(
         name="OSIRIS_imaging_mode",
         unit="string",
         meaning="For OSIRIS data, the imaging mode (imaging or spectroscopy)",
@@ -211,6 +216,36 @@ SCHEMA = (
         meaning="Altitude of the sodium layer",
     ),
     ColumnDef(
+        name="lgs_wfs_signal_levels",
+        unit="4 signal levels in electrons per subaperture per frame", # Ordering follows convention from https://docs.google.com/document/d/1YQNdJjWz2LFtnWaDdaJxFfnd-Dfjs9zw7nqB67q1gHM/edit?tab=t.0#heading=h.scqamqs3mj7m
+        meaning="Signal levels for each LGS WFS",
+    ),
+    ColumnDef(
+        name="avg_lgs_wfs_signal_level",
+        unit="electrons per subaperture per frame",
+        meaning="Average signal level across all LGS WFSs",
+    ),
+    ColumnDef(
+        name="lgs_wfs_background_levels",
+        unit="4 background levels in electrons per pixel per frame", # Ordering follows convention from https://docs.google.com/document/d/1YQNdJjWz2LFtnWaDdaJxFfnd-Dfjs9zw7nqB67q1gHM/edit?tab=t.0#heading=h.scqamqs3mj7m
+        meaning="Background levels for each LGS WFS",
+    ),
+    ColumnDef(
+        name="avg_lgs_wfs_background_level",
+        unit="electrons per pixel per frame",
+        meaning="Average background level across all LGS WFSs",
+    ),
+    ColumnDef(
+        name="lit_subap_indices",
+        unit="4 Lists of subaperture indices within the subap map convention from https://docs.google.com/document/d/1YQNdJjWz2LFtnWaDdaJxFfnd-Dfjs9zw7nqB67q1gHM/edit?tab=t.0#heading=h.scqamqs3mj7m",
+        meaning="List of subaperture indices which are lit and within the subap map of subapertures which are supposed to be illuminated",
+    ),
+    ColumnDef(
+        name="unlit_subap_indices",
+        unit="4 Lists of subaperture indices within the subap map convention from https://docs.google.com/document/d/1YQNdJjWz2LFtnWaDdaJxFfnd-Dfjs9zw7nqB67q1gHM/edit?tab=t.0#heading=h.scqamqs3mj7m",
+        meaning="List of subaperture indices which are unlit but still within the subap map of subapertures which are supposed to be illuminated"
+    ),
+    ColumnDef(
         name="OSIRIS_tt_sensor",
         unit="string",
         meaning="For OSIRIS data, which tip-tilt sensor was used (STRAP or NIRTTS/TRICK)?",
@@ -266,6 +301,33 @@ SCHEMA = (
         name="lgs_wfs_detector_gain",
         unit="counts",
         meaning="Gain of the lgs wfs detector. How many counts per electron",
+    ),
+
+    # AO positioning
+    ColumnDef(
+        name="aotsx",
+        unit="mm",
+        meaning="AO tip/tilt sensor stage X position",
+    ),
+    ColumnDef(
+        name="aotsy",
+        unit="mm",
+        meaning="AO tip/tilt sensor stage Y position",
+    ),
+    ColumnDef(
+        name="tt_star_offset_x",
+        unit="arcsec",
+        meaning="Tip-tilt star offset in the science camera X pixel direction",
+    ),
+    ColumnDef(
+        name="tt_star_offset_y",
+        unit="arcsec",
+        meaning="Tip-tilt star offset in the science camera Y pixel direction",
+    ),
+    ColumnDef(
+        name="tip_tilt_radial_offset",
+        unit="arcsec",
+        meaning="Radial offset of the tip-tilt star from the center of the LGS constellation",
     ),
 
     # Weather information
@@ -447,9 +509,9 @@ def validate_table_has_schema(table, schema=SCHEMA, allow_extra_columns=True):
     :rtype: None
     """
 
-    # If passed a row, extract the column names
-    if isinstance(table, Row):
-        table = QTable([table])
+    # # If passed a row, extract the column names
+    # if isinstance(table, Row):
+    #     table = QTable([table])
 
     required = schema_column_names(schema)
     missing = [c for c in required if c not in table.colnames]

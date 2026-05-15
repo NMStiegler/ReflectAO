@@ -10,7 +10,7 @@ import argparse
 from pathlib import Path
 
 
-DEFAULT_FITS = "/g3/data/kapa/2026mar04/raw/i260304_a012002.fits"
+DEFAULT_FITS = "/g3/data/kapa/2026apr27/raw/i260427_a023005.fits"
 
 
 def dump_headers_to_txt(*, fits_path: Path, out_path: Path) -> None:
