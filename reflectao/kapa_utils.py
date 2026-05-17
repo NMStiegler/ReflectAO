@@ -19,7 +19,13 @@ kapa_night_list = ["2025nov06",
                    "2026feb28",
                    "2026jan12",
                    "2026jan31",
-                   "2026mar04"]
+                   "2026mar04",
+                   "2026mar26", # Telemetry only. OSIRIS out. Engineering
+                   "2026apr26",
+                   "2026apr27"
+                   "2026apr28",
+                   "2026apr29",
+                   "2026apr30"]
 
 def get_wfso1_gain(date, mode):
     """

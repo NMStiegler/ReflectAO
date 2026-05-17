@@ -1,0 +1,52 @@
+name: astro
+channels:
+  - conda-forge
+dependencies:
+  - numpy
+  - scipy
+  - astropy
+  - matplotlib
+  - jupyterlab
+  - nodejs
+  - ca-certificates
+  - certifi
+  - openssl
+  - pymultinest
+  - ipython
+  - astroquery
+  - notebook
+  - scikit-learn
+  - ffmpeg
+  - eigen
+  - fftw
+  - doxygen
+  - cfitsio
+  - pymysql
+  - zlib
+  - mpi4py
+  - pandas
+  - hdf5[build=mpi*]
+  - h5py[build=mpi*]
+  - ipympl
+  - pysynphot
+  - celerite
+  - ephem
+  - jplephem
+  - pytest
+  - dynesty
+  - nb_conda_kernels
+  - pytables
+  - gspread
+  - oauth2client
+  - photutils
+  - ipykernel
+  - ipywidgets
+  - pygments
+  - ccdproc
+  - pip:
+    - drizzle
+    - mpmath
+    - mulensmodel
+    - py-cpuinfo
+    - sympy
+prefix: /opt/mambaforge3/envs/astro

@@ -36,7 +36,13 @@ good_kapa_night_list = ["2025nov06",
                    "2026feb28",
                  #   "2026jan12", <-- No telemetry (TRS server down)
                  #   "2026jan31", <-- Telemetry files are empty (lingering TRS issue)
-                   "2026mar04"]
+                   "2026mar04",
+                #    "2026mar26", <--- Telemetry only. OSIRIS out. Engineering
+                   "2026apr26",
+                   "2026apr27",
+                   "2026apr28",
+                   "2026apr29",
+                   "2026apr30"]
 
 # Some nights didn't record t_exposure_duration right. Keeping track
 nights_with_exposure_duration_issues = [
