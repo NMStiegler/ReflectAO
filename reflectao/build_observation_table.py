@@ -129,6 +129,12 @@ def build_observation_table(
         hdr = fits.getheader(p)
         row_vals = {col: np.ma.masked for col in expected_cols}
 
+        # Check this is an instrument we support
+        keck_ao_instruments = ["OSIRIS", "NIRC2"] # We can add more instruments here as we support them
+        if hdr["CURRINST"] not in keck_ao_instruments:
+            print(f"Warning: Instrument {hdr['CURRINST']} not in supported instrument list {keck_ao_instruments}. Skipping file {p}.")
+            row_vals['instrument_name'] = hdr["CURRINST"] # We can still fill in the instrument name column for unsupported instruments, which is useful for debugging and expanding support in the future.
+
         ############# Add metadata from this row's FITS file #############
         ### System information ###
         row_vals["image_path"] = str(p) # Path to the FITS file
@@ -136,7 +142,11 @@ def build_observation_table(
         
         ### Telescope / instrument / set information ###
         row_vals['telescope_name'] = inst.get_telescope_name(hdr)
-        row_vals['instrument_name'] = inst.get_instrument_name(hdr)
+        if inst.get_instrument_name(hdr) == hdr["CURRINST"]:
+            row_vals['instrument_name'] = inst.get_instrument_name(hdr)
+        else:
+            print(f"Warning: Instrument name from KAI ({inst.get_instrument_name(hdr)}) does not match CURRINST in header ({hdr['CURRINST']}). Using CURRINST value.")
+            row_vals['instrument_name'] = hdr["CURRINST"]
         row_vals['instrument_angle'] = inst.get_instrument_angle(hdr) * u.deg
         row_vals['OSIRIS_imaging_mode'] = inst.get_imaging_mode(hdr) # For OSIRIS, get the imaging mode (imag or spec)
         row_vals['telescope_elevation'] = inst.get_telescope_elevation(hdr) * u.deg
@@ -295,20 +305,21 @@ def build_observation_table(
         # Weather handling
         on_sky_fits_file_path = str(row_vals['image_path'])
         folder_with_on_sky_data = "/u/nstieg/work/ao/keck/massdimm/"
-        on_sky_conditions = mu.estimate_on_sky_conditions(on_sky_fits_file_path, folder_with_on_sky_data)
-        r0, turbulence_profile, wind_speed_profile, wind_direction_profile, _, _, _, _, tau0, theta0, _ = on_sky_conditions
+        if row_vals['instrument_name'] in keck_ao_instruments:
+            on_sky_conditions = mu.estimate_on_sky_conditions(on_sky_fits_file_path, folder_with_on_sky_data)
+            r0, turbulence_profile, wind_speed_profile, wind_direction_profile, _, _, _, _, tau0, theta0, _ = on_sky_conditions
 
-        # Put weather data in row
-        row_vals['r0'] = r0 # already in meters
-        row_vals['turbulence_profile'] = turbulence_profile
-        row_vals['wind_speed_profile'] = wind_speed_profile * (u.m / u.s)
-        row_vals['wind_direction_profile'] = wind_direction_profile * u.deg
-        row_vals['tau0'] = tau0 * u.s
-        row_vals['theta0'] = theta0 * u.arcsec
+            # Put weather data in row
+            row_vals['r0'] = r0 # already in meters
+            row_vals['turbulence_profile'] = turbulence_profile
+            row_vals['wind_speed_profile'] = wind_speed_profile * (u.m / u.s)
+            row_vals['wind_direction_profile'] = wind_direction_profile * u.deg
+            row_vals['tau0'] = tau0 * u.s
+            row_vals['theta0'] = theta0 * u.arcsec
 
-        # Fix any rows which may be uneven since if a column of the table has a list of arrays, all the arrays need to be the same length (so I'll turn them into 2d arrays)
-        row_vals['unlit_subap_indices'] = fill_in_uneven_list_of_arrays(row_vals['unlit_subap_indices']) if row_vals['unlit_subap_indices'] is not np.ma.masked else np.ma.masked
-        row_vals['lit_subap_indices'] = fill_in_uneven_list_of_arrays(row_vals['lit_subap_indices']) if row_vals['lit_subap_indices'] is not np.ma.masked else np.ma.masked
+            # Fix any rows which may be uneven since if a column of the table has a list of arrays, all the arrays need to be the same length (so I'll turn them into 2d arrays)
+            row_vals['unlit_subap_indices'] = fill_in_uneven_list_of_arrays(row_vals['unlit_subap_indices']) if row_vals['unlit_subap_indices'] is not np.ma.masked else np.ma.masked
+            row_vals['lit_subap_indices'] = fill_in_uneven_list_of_arrays(row_vals['lit_subap_indices']) if row_vals['lit_subap_indices'] is not np.ma.masked else np.ma.masked
 
         # Put in the table
         new_rows.append(row_vals)
