@@ -38,11 +38,12 @@ good_kapa_night_list = ["2025nov06",
                  #   "2026jan31", <-- Telemetry files are empty (lingering TRS issue)
                    "2026mar04",
                 #    "2026mar26", <--- Telemetry only. OSIRIS out. Engineering
-                   "2026apr26",
+                #    "2026apr26", <--- have no data? Maybe an engineering night?
                    "2026apr27",
                    "2026apr28",
                    "2026apr29",
-                   "2026apr30"]
+                   "2026apr30",
+                   "2026may30"]
 
 # Some nights didn't record t_exposure_duration right. Keeping track
 nights_with_exposure_duration_issues = [
@@ -213,7 +214,7 @@ good_kapa_img_wfs_telemetry_slgs = {
 
     },
     "2026mar04": {
-        
+
     }
 }
 
@@ -652,7 +653,8 @@ def has_four_lgs_data(telem_file):
 
 def has_single_lgs_data(telem_file):
     """
-    Check if a numpy.lib.npyio.NpzFile file contains data for a single LGS
+    Check if a numpy.lib.npyio.NpzFile file contains data for any single LGS.
+    Will return true if there are 1+ LGS telemetry files
 
     :param telem_file: The numpy.lib.npyio.NpzFile to check
     :type telem_file: numpy.lib.npyio.NpzFile
@@ -661,6 +663,18 @@ def has_single_lgs_data(telem_file):
     """
 
     return any(get_ocam2k_intensity_key(i) in telem_file.files for i in range(1, 5))
+
+def has_only_single_lgs_data(telem_file):
+    """
+    Check if a numpy.lib.npyio.NpzFile file contains data for only a single LGS.
+
+    :param telem_file: The numpy.lib.npyio.NpzFile to check
+    :type telem_file: numpy.lib.npyio.NpzFile
+    :return: True if the file contains data for only a single LGS, False otherwise
+    :rtype: bool
+    """
+
+    return sum(get_ocam2k_intensity_key(i) in telem_file.files for i in range(1, 5)) == 1
 
 def get_ocam2k_intensity_key(i):
     """
