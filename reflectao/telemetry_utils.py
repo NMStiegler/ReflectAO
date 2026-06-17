@@ -42,8 +42,8 @@ good_kapa_night_list = ["2025nov06",
                    "2026apr27",
                    "2026apr28",
                    "2026apr29",
-                   "2026apr30",
-                   "2026may30"]
+                   "2026apr30"
+]
 
 # Some nights didn't record t_exposure_duration right. Keeping track
 nights_with_exposure_duration_issues = [
@@ -187,17 +187,15 @@ good_kapa_img_wfs_telemetry = {
 # Same as above but for single LGS telemetry
 good_kapa_img_wfs_telemetry_slgs = {
     "2025nov06": {
-        1: [80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173],
+        1: [101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173],
     },
     "2025dec04": {
         1: [13],
         4: [2, 3, 4, 5, 6, 7, 8, 9],
         5: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
-        8: [89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436, 437, 438, 439, 440, 441, 442, 443, 444, 445, 446, 447, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 473, 474, 475, 476, 477, 478, 479, 480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497, 498, 500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520, 521, 522, 523, 524, 525, 526, 527, 528, 529, 530, 531, 532, 533, 534, 535, 536, 537, 538, 539, 540, 541, 542, 543, 544, 545, 546, 547, 548, 549, 550, 551, 552, 553, 554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568, 569, 570, 571, 572, 573],
-        13: [574],
+        8: [89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356],
     },
     "2025dec06": {
-        1: [56, 57],
         3: [6, 7, 8],
         4: [2, 3, 4, 5, 6, 7, 8, 9],
         9: [23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42],
@@ -211,11 +209,20 @@ good_kapa_img_wfs_telemetry_slgs = {
         49: [2, 3, 4, 5, 6, 7, 8, 9],
     },
     "2026feb28": {
-
     },
     "2026mar04": {
-
-    }
+    },
+    "2026apr27": {
+    },
+    "2026apr28": {
+        1: [34, 35, 39],
+    },
+    "2026apr29": {
+        2: [15, 16, 17, 20],
+    },
+    "2026apr30": {
+        1: [11, 14],
+    },
 }
 
 ### Internal Helper Functions ###
@@ -581,17 +588,24 @@ def load_dtt_data(telem_files):
     downtiptilt = np.load(telem_files[dtt_loc])
     return downtiptilt
 
-def has_ocam2k_data(telem_files):
+def has_ocam2k_data(telem_files, check_for_LGS=False):
     """
     Check if a list of telemetry files contains ocam2k data
     
     :param telem_files: List of telemetry files (strings or Path objects)
     :type telem_files: list
+    :param check_for_LGS: If True, also check that the ocam2k data is from LGS not NGS operations. If False, just check for the presence of any ocam2k data.
+    :type check_for_LGS: bool
     :return: True if the list contains a file with 'ocam2k' in its name/path, False otherwise
     :rtype: bool
     """
-    
-    return any('ocam2k' in str(f) for f in telem_files)
+    has_ocam2k = any('ocam2k' in str(f) for f in telem_files)
+    has_LGS = any('LGS' in str(f) for f in telem_files)
+    not_NGS = not any('NGS' in str(f) for f in telem_files)
+    if not check_for_LGS:
+        return has_ocam2k
+    else:
+        return has_ocam2k and has_LGS and not_NGS
 
 def load_ocam2k_data(telem_files):
     """
@@ -1163,44 +1177,44 @@ def get_lit_data_indices(data, thresh=20):
 
     return lit_indices
 
-def compute_median_values_for_all_wfs(data, thresh=20, unlit_data_indices_for_all_wfs=None, lit_data_indices_for_all_wfs=None):
+def compute_median_values_for_all_wfs(data, thresh=20, unlit_data_indices_for_all_wfs=None, lit_data_indices_for_all_wfs=None, num_WFS=4):
     """
     Compute median lit subaperture and unlit subaperture values across
-    all 304 subapertures on all 4 WFSs. The cutoff between the lit and unlit
+    all 304 subapertures on all num_WFS WFSs. The cutoff between the lit and unlit
     subpopulations are determined by the thresh parameter which defines a 
     percentile above and below which to separate the data. Values here could be
     intensities, electron counts, or standard deviation of electron counts, etc.
     Just some data defined across all subapertures which are defined into a 
     high and low population
 
-    :param data: A list of numpy arrays, each containing the data for a single WFS with length 304, or a numpy array of shape (4, 304) where the first dimension corresponds to the WFS number and the second dimension corresponds to the subapertures. 
+    :param data: A list of numpy arrays, each containing the data for a single WFS with length 304, or a numpy array of shape (num_WFS, 304) where the first dimension corresponds to the WFS number and the second dimension corresponds to the subapertures. 
     :param thresh: The percentile threshold for separating lit and unlit subapertures
     :type thresh: int or float
     :param unlit_data_indices: Optional pre-computed indices of the unlit subapertures
     :type unlit_data_indices: list of numpy.ndarray
     :param lit_data_indices: Optional pre-computed indices of the lit subapertures
     :type lit_data_indices: list of numpy.ndarray
-    :return: A tuple of (median_unlit_values, median_lit_values) where each is a list of length 4 containing the median unlit and lit values for each WFS respectively
+    :return: A tuple of (median_unlit_values, median_lit_values) where each is a list of length num_WFS containing the median unlit and lit values for each WFS respectively
     :rtype: tuple of (list, list)
 
     """
     
     # Check params
     if isinstance(data, list):
-        assert len(data) == 4, "data must be a list of 4 numpy arrays"
+        assert len(data) == num_WFS, f"data must be a list of {num_WFS} numpy arrays"
         for d in data:
             assert len(d) == 304, "each array in data must have length 304"
     elif isinstance(data, np.ndarray):
-        assert data.shape == (4, 304), "data must be a numpy array of shape (4, 304)"
+        assert data.shape == (num_WFS, 304), f"data must be a numpy array of shape ({num_WFS}, 304)"
     else:
-        raise TypeError("data must be a list of 4 numpy arrays or a numpy array of shape (4, 304)")
+        raise TypeError("data must be a list of numpy arrays or a numpy array of shape (num_WFS, 304)")
     assert isinstance(thresh, (int, float)), "thresh must be an int or float"
     assert thresh >= 0 and thresh <= 100, "thresh must be a percentile between 0 and 100"
 
-    # Loop over all 4 WFSs and compute median values for each
+    # Loop over all num_WFS WFSs and compute median values for each
     median_unlit_values = []
     median_lit_values = []    
-    for wfs_number in range(1, 5):
+    for wfs_number in range(1, num_WFS + 1):
         wfs_index = wfs_number - 1
         unlit_data_indices_for_wfs = unlit_data_indices_for_all_wfs[wfs_index] if unlit_data_indices_for_all_wfs is not None else None
         lit_data_indices_for_wfs = lit_data_indices_for_all_wfs[wfs_index] if lit_data_indices_for_all_wfs is not None else None
@@ -1210,7 +1224,7 @@ def compute_median_values_for_all_wfs(data, thresh=20, unlit_data_indices_for_al
 
     return median_unlit_values, median_lit_values
 
-def get_unlit_data_indices_for_all_wfs(data, thresh=20):
+def get_unlit_data_indices_for_all_wfs(data, thresh=20, num_WFS=4):
     """
     Get the indices of the unlit subapertures for all 4 WFSs based on the threshold percentile
 
@@ -1218,6 +1232,8 @@ def get_unlit_data_indices_for_all_wfs(data, thresh=20):
     :type data: numpy.ndarray or list
     :param thresh: The percentile threshold for separating lit and unlit subapertures
     :type thresh: int or float
+    :param num_WFS: The number of WFSs to process, default is 4
+    :type num_WFS: int
     :return: A list of numpy arrays, each containing the indices of the unlit subapertures for a single WFS
     :rtype: list of numpy.ndarray
     """
@@ -1225,24 +1241,24 @@ def get_unlit_data_indices_for_all_wfs(data, thresh=20):
     # Verify inputs
     assert(isinstance(data, (np.ndarray, list))), "data must be a numpy array or list"
     if isinstance(data, list):
-        assert(len(data) == 4), "data must be a list of 4 numpy arrays"
+        assert(len(data) == num_WFS), f"data must be a list of {num_WFS} numpy arrays"
         for d in data:
             assert(len(d) == 304), "each array in data must have length 304"
     elif isinstance(data, np.ndarray):
-        assert(data.shape == (4, 304)), "data must be a numpy array of shape (4, 304)"
+        assert(data.shape == (num_WFS, 304)), "data must be a numpy array of shape (num_WFS, 304)"
     assert(isinstance(thresh, (int, float))), "thresh must be an int or float"
     assert(thresh >= 0 and thresh <= 100), "thresh must be a percentile between 0 and 100"
 
     # Loop over all 4 WFSs and get unlit data indices for each
     unlit_indices = []
-    for wfs_number in range(1, 5):
+    for wfs_number in range(1, num_WFS + 1):
         wfs_index = wfs_number - 1
         unlit_idx = get_unlit_data_indices(data[wfs_index], thresh)
         unlit_indices.append(unlit_idx)
 
     return unlit_indices
 
-def get_lit_data_indices_for_all_wfs(data, thresh=20):
+def get_lit_data_indices_for_all_wfs(data, thresh=20, num_WFS=4):
     """
     Get the indices of the lit subapertures for all 4 WFSs based on the threshold percentile
 
@@ -1250,6 +1266,8 @@ def get_lit_data_indices_for_all_wfs(data, thresh=20):
     :type data: numpy.ndarray or list
     :param thresh: The percentile threshold for separating lit and unlit subapertures
     :type thresh: int or float
+    :param num_WFS: The number of WFSs to process, default is 4
+    :type num_WFS: int
     :return: A list of numpy arrays, each containing the indices of the lit subapertures for a single WFS
     :rtype: list of numpy.ndarray
     """
@@ -1257,40 +1275,42 @@ def get_lit_data_indices_for_all_wfs(data, thresh=20):
     # Verify inputs
     assert(isinstance(data, (np.ndarray, list))), "data must be a numpy array or list"
     if isinstance(data, list):
-        assert(len(data) == 4), "data must be a list of 4 numpy arrays"
+        assert(len(data) == num_WFS), f"data must be a list of {num_WFS} numpy arrays"
         for d in data:
             assert(len(d) == 304), "each array in data must have length 304"
     elif isinstance(data, np.ndarray):
-        assert(data.shape == (4, 304)), "data must be a numpy array of shape (4, 304)"
+        assert(data.shape == (num_WFS, 304)), "data must be a numpy array of shape (num_WFS, 304)"
     assert(isinstance(thresh, (int, float))), "thresh must be an int or float"
     assert(thresh >= 0 and thresh <= 100), "thresh must be a percentile between 0 and 100"
 
     # Loop over all 4 WFSs and get lit data indices for each
     lit_indices = []
-    for wfs_number in range(1, 5):
+    for wfs_number in range(1, num_WFS + 1):
         wfs_index = wfs_number - 1
         lit_idx = get_lit_data_indices(data[wfs_index], thresh)
         lit_indices.append(lit_idx)
 
     return lit_indices
 
-def compute_aperture_wise_electron_stats(ocam2k, hdr_tbl):
+def compute_aperture_wise_electron_stats(ocam2k, hdr_tbl, num_WFS=4):
     """
     Compute the mean and standard deviation of the number of electrons read per frame
-    for each subaperture across all 4 WFSs. The mean and standard deviation are
-    returned as two numpy arrays with shape (4, 304) and units of electrons
+    for each subaperture across all num_WFS WFSs. The mean and standard deviation are
+    returned as two numpy arrays with shape (num_WFS, 304) and units of electrons
 
     :param ocam2k: The ocam2k telemetry data loaded from the .npy file, as a numpy.lib.npyio.NpzFile
     :type ocam2k: numpy.lib.npyio.NpzFile
     :param hdr_tbl: The header table loaded from the observed image fits file, as an astropy Table
     :type hdr_tbl: astropy.table.Table, Row, or dictionary-like object with keys 'lgs_wfs_rate' and 't_exposure_start'
-    :return: A tuple of (sensor_mean_electrons, sensor_stds_electrons) where each is a numpy array with shape (4, 304) and units of electrons per read of the mean and standard deviation respectively
+    :param num_WFS: The number of WFSs to process, default is 4
+    :type num_WFS: int
+    :return: A tuple of (sensor_mean_electrons, sensor_stds_electrons) where each is a numpy array with shape (num_WFS, 304) and units of electrons per read of the mean and standard deviation respectively
     :rtype: tuple of (numpy.ndarray, numpy.ndarray)
     """
 
     # Verify inputs
     assert(isinstance(ocam2k, np.lib.npyio.NpzFile)), "ocam2k must be a dictionary"
-    for i in range(1, 5):
+    for i in range(1, num_WFS + 1):
         key = get_ocam2k_intensity_key(i)
         assert(key in ocam2k), f"ocam2k must contain key {key}"
         assert(isinstance(ocam2k[key], np.ndarray)), f"ocam2k[{key}] must be a numpy array"
@@ -1309,7 +1329,7 @@ def compute_aperture_wise_electron_stats(ocam2k, hdr_tbl):
     # Compute mean and standard deviation of electrons for each subaperture across all 4 WFSs
     sensor_mean_electrons = []
     sensor_stds_electrons = []
-    for i in range(1, 5):
+    for i in range(1, num_WFS + 1):
         # Get adus, fluxes, and electrons for this wfs
         adus = ocam2k[get_ocam2k_intensity_key(i)] * u.adu
         electrons = ku.convert_adu_to_photo_electrons(adus, date=Time(exposure_start), mode="KAPA")
@@ -1323,23 +1343,25 @@ def compute_aperture_wise_electron_stats(ocam2k, hdr_tbl):
     # Return final values
     return sensor_mean_electrons, sensor_stds_electrons
 
-def compute_aperture_wise_electron_rate_stats(ocam2k, hdr_tbl):
+def compute_aperture_wise_electron_rate_stats(ocam2k, hdr_tbl, num_WFS=4):
     """
     Compute the mean and standard deviation of the number of electrons read per second
-    for each subaperture across all 4 WFSs. The mean and standard deviation are
-    returned as two numpy arrays with shape (4, 304) and units of electrons per second
+    for each subaperture across all num_WFS WFSs. The mean and standard deviation are
+    returned as two numpy arrays with shape (num_WFS, 304) and units of electrons per second
 
     :param ocam2k: The ocam2k telemetry data loaded from the .npy file, as a numpy.lib.npyio.NpzFile
     :type ocam2k: numpy.lib.npyio.NpzFile
     :param hdr_tbl: The header table loaded from the observed image fits file, as an astropy Table
     :type hdr_tbl: astropy.table.Table
-    :return: A tuple of (sensor_mean_electron_rates, sensor_stds_electron_rates) where each is a numpy array with shape (4, 304) and units of electrons per second of the mean and standard deviation respectively
+    :param num_WFS: The number of WFSs to process, default is 4
+    :type num_WFS: int
+    :return: A tuple of (sensor_mean_electron_rates, sensor_stds_electron_rates) where each is a numpy array with shape (num_WFS, 304) and units of electrons per second of the mean and standard deviation respectively
     :rtype: tuple of (numpy.ndarray, numpy.ndarray)
     """
 
     # Verify inputs
     assert(isinstance(ocam2k, np.lib.npyio.NpzFile)), "ocam2k must be a dictionary"
-    for i in range(1, 5):
+    for i in range(1, num_WFS + 1):
         key = get_ocam2k_intensity_key(i)
         assert(key in ocam2k), f"ocam2k must contain key {key}"
         assert(isinstance(ocam2k[key], np.ndarray)), f"ocam2k[{key}] must be a numpy array"
@@ -1361,7 +1383,7 @@ def compute_aperture_wise_electron_rate_stats(ocam2k, hdr_tbl):
     # Compute mean and standard deviation of electrons for each subaperture across all 4 WFSs
     sensor_mean_electrons = []
     sensor_stds_electrons = []
-    for i in range(1, 5):
+    for i in range(1, num_WFS + 1):
         # Get adus, fluxes, and electrons for this wfs
         adus = ocam2k[get_ocam2k_intensity_key(i)] * u.adu
         electrons = ku.convert_adu_to_flux(adus, frame_rate, date=Time(exposure_start), mode="KAPA")
