@@ -253,8 +253,13 @@ def build_observation_table(
         # Telemetry handling
         telem_files = read_image_telemetry(telemetry_file, verbose=True)
         ocam2k = load_ocam2k_data(telem_files)
-        row_vals['num_lgs_wfs'] = 4 if has_four_lgs_data(ocam2k) else 1 # Either in LGS with 1 WFS or KAPA/LTAO with 4
-        
+        if has_four_lgs_data(ocam2k):
+            row_vals['num_lgs_wfs'] = 4
+        elif has_only_single_lgs_data(ocam2k):
+            row_vals['num_lgs_wfs'] = 1
+        else:
+            row_vals['num_lgs_wfs'] = np.ma.masked # We don't have telemetry for this image, so we can't determine the number of LGS WFSs. This could happen if the telemetry is missing or corrupted.
+
         # Calculate signal and background levels for each LGS WFS based on telemetry, if possible. If not, leave as masked.
         if has_four_lgs_data(ocam2k):
             # NOTE: Using convention where I append the unit and then shape of arrays to the end of variable names.
@@ -301,6 +306,51 @@ def build_observation_table(
             pix_per_subap = pix_per_subap_side**2
             row_vals['lgs_wfs_background_levels'] = ((median_dim_std_e_4**2 / pix_per_subap) - RN**2).to_value(u.electron * u.electron) * u.electron # Because of Poisson, units of N = units of N^2 :|
             row_vals['avg_lgs_wfs_background_level'] = np.mean(row_vals['lgs_wfs_background_levels'])
+        elif has_only_single_lgs_data(ocam2k):
+            # NOTE: Using convention where I append the unit and then shape of arrays to the end of variable names.
+            # So arr_s_X_Y means it's size (X, Y) and unit seconds
+            # Get the mean electrons read per subaperture per frame for each subaperture for our one WFS as well as the standard
+            # deviation of the electrons read per subaperture per frame for each subaperture for our one WFS. Both should have shape (304)
+            # and units of electrons per read although the units of the stds is really sqrt(e-^2 variance)
+            sensor_mean_electrons_1_304, sensor_stds_electrons_1_304 = compute_aperture_wise_electron_stats(ocam2k, row_vals, num_WFS=1)
+
+            # Break the subapertures into a bright and dim population based on the 20th percentile signal level
+            # We do this because empirically on all of the telemetry we've looked at, there are some 'less illuminated'
+            # subapertures around the edges of the subap mask that don't have nearly as many electrons as the more fully
+            # illuminated subapertures and we want to make sure we treat the ones which get electrons as having a signal
+            # and the ones which don't as not having a signal. The 20th percentile has worked well before
+            thresh = 20 # Use 20th percentile
+            
+            # Get the indices of the lit and unlit subapertures 
+            row_vals['unlit_subap_indices'] = get_unlit_data_indices_for_all_wfs(sensor_mean_electrons_1_304, thresh=thresh, num_WFS=1)
+            row_vals['lit_subap_indices'] = get_lit_data_indices_for_all_wfs(sensor_mean_electrons_1_304, thresh=thresh, num_WFS=1)
+
+            # Calculate the median signal level from the dim and bright subapertures respectively for each WFS
+            _, median_bright_mean_e_1 = compute_median_values_for_all_wfs(sensor_mean_electrons_1_304, thresh=thresh, unlit_data_indices_for_all_wfs=row_vals['unlit_subap_indices'], lit_data_indices_for_all_wfs=row_vals['lit_subap_indices'], num_WFS=1)
+            median_bright_mean_e_1 = turn_list_of_quantities_into_quantity_array(median_bright_mean_e_1)
+
+            # Calculate the standard deviation of signal levels from the dim and bright subapertures respectively for each WFS
+            # This tells us about the noise of each pixel
+            median_dim_std_e_1, _ = compute_median_values_for_all_wfs(sensor_stds_electrons_1_304, thresh=20, unlit_data_indices_for_all_wfs=row_vals['unlit_subap_indices'], lit_data_indices_for_all_wfs=row_vals['lit_subap_indices'], num_WFS=1)
+            median_dim_std_e_1 = turn_list_of_quantities_into_quantity_array(median_dim_std_e_1)
+
+            # Signal level is in electrons (electrons = photons for us) per subaperture per frame
+            row_vals['lgs_wfs_signal_levels'] = median_bright_mean_e_1
+            row_vals['avg_lgs_wfs_signal_level'] = np.mean(median_bright_mean_e_1)
+
+            # Compute background levels based on the dim subapertures. We want these values in number of electrons per pixel per
+            # frame coming from the background. Each subaperture has 4x4 = 16 pixels. For each pixel of a dim subap, we expect the total
+            # noise sigma^2_pixel = N_electrons + RN^2 where N_electrons is the number of background sky and dark electrons and RN is the read noise in electrons.
+            # We use N_electrons instead of sigma^2_electrons because we expect these electrons to have Poisson statistics where sigma^2_electrons = N_electrons
+            # We assume RN = 0.36 electrons based on KAON 1337. Thus for the whole subap, sigma^2_subap = 16 * (N_electrons + RN^2)
+            # sigma_subap, the total noise in each subap, is in median_dim_std_e_1 for each WFS. Now we can rearrange the equation to solve for N_electrons:
+            # N_electrons = ((sigma^2_subap / 16) - RN^2). We could do this / F^2 where F is the extra noise factor from the OCAM2k EMCCD gain, but since we're directly
+            # measuring N_electrons we don't have to care about this - it's baked into our measurement of sigma^2_subap 
+            RN = 0.36 * u.electron # Read noise
+            pix_per_subap_side = 4
+            pix_per_subap = pix_per_subap_side**2
+            row_vals['lgs_wfs_background_levels'] = ((median_dim_std_e_1**2 / pix_per_subap) - RN**2).to_value(u.electron * u.electron) * u.electron # Because of Poisson, units of N = units of N^2 :|
+            row_vals['avg_lgs_wfs_background_level'] = np.mean(row_vals['lgs_wfs_background_levels'])
         
         # Weather handling
         on_sky_fits_file_path = str(row_vals['image_path'])
@@ -328,7 +378,15 @@ def build_observation_table(
     if not new_rows:
         return table if table is not None else new_empty_observation_table(n_rows=0)
 
-    # Build an intermediate table from the new rows. By forcing masked=True, 
+    # Pad variable-length columns to a uniform length across all rows before
+    # constructing the QTable. fill_in_uneven_list_of_arrays already pads within
+    # each row, but rows can still disagree on the padded width if different
+    # exposures have different subaperture counts or atmospheric layer counts.
+    for _col in ['turbulence_profile', 'wind_speed_profile', 'wind_direction_profile',
+                 'unlit_subap_indices', 'lit_subap_indices']:
+        pad_uneven_column_across_rows(new_rows, _col)
+
+    # Build an intermediate table from the new rows. By forcing masked=True,
     # Astropy properly creates MaskedColumns for any np.ma.masked values.
     new_table = QTable(rows=new_rows, masked=True)
     
@@ -370,3 +428,29 @@ def fill_in_uneven_list_of_arrays(list_of_arrays):
     for i, arr in enumerate(list_of_arrays):
         filled_array[i, :len(arr)] = arr
     return filled_array
+
+
+def pad_uneven_column_across_rows(rows, col):
+    """
+    Pad a variable-length array column to a uniform last-dimension length across
+    all rows so that QTable can store it as a proper N-D column. Works for both
+    1D arrays (e.g. profile columns) and 2D arrays (e.g. subap index columns with
+    shape (num_WFS, n_subaps) where n_subaps varies). Rows with masked values are
+    left untouched. Astropy Quantity units are preserved.
+
+    :param rows: List of row dictionaries, as produced before QTable construction.
+    :type rows: list of dict
+    :param col: Column name whose values are arrays with a variable last dimension.
+    :type col: str
+    """
+    live = [(i, r[col]) for i, r in enumerate(rows) if r[col] is not np.ma.masked]
+    if not live:
+        return
+    # For 2D arrays the varying dimension is axis=-1 (columns); for 1D it's also axis=-1
+    max_len = max(np.shape(arr)[-1] for _, arr in live)
+    for i, arr in live:
+        arr_np = arr.value if hasattr(arr, 'unit') else np.asarray(arr)
+        if arr_np.shape[-1] < max_len:
+            pad_width = [(0, 0)] * (arr_np.ndim - 1) + [(0, max_len - arr_np.shape[-1])]
+            padded_np = np.pad(arr_np.astype(float), pad_width, constant_values=np.nan)
+            rows[i][col] = padded_np * arr.unit if hasattr(arr, 'unit') else padded_np
