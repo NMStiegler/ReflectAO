@@ -176,6 +176,11 @@ SCHEMA = (
     
     # AO system information
     ColumnDef(
+        name="propagating",
+        unit="boolean",
+        meaning="Whether the laser was propagating during the observation",
+    ),
+    ColumnDef(
         name='ao_closed',
         unit='boolean',
         meaning='Whether the AO system is closed loop',

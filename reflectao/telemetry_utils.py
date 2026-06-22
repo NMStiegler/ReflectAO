@@ -193,7 +193,7 @@ good_kapa_img_wfs_telemetry_slgs = {
         1: [13],
         4: [2, 3, 4, 5, 6, 7, 8, 9],
         5: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
-        8: [89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356],
+        8: [89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356],
     },
     "2025dec06": {
         3: [6, 7, 8],
@@ -201,12 +201,6 @@ good_kapa_img_wfs_telemetry_slgs = {
         9: [23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42],
     },
     "2026feb26": {
-        44: [3, 4, 5],
-        45: [2, 3, 4, 5],
-        46: [2, 3, 4, 5, 6, 7, 8, 9],
-        47: [2, 3, 4, 5, 6, 7, 8, 9],
-        48: [2, 3, 4, 5, 6, 7, 8, 9],
-        49: [2, 3, 4, 5, 6, 7, 8, 9],
     },
     "2026feb28": {
     },
@@ -215,15 +209,16 @@ good_kapa_img_wfs_telemetry_slgs = {
     "2026apr27": {
     },
     "2026apr28": {
-        1: [34, 35, 39],
+        1: [34, 35],
     },
     "2026apr29": {
-        2: [15, 16, 17, 20],
+        2: [15, 17, 20],
     },
     "2026apr30": {
         1: [11, 14],
     },
 }
+
 
 ### Internal Helper Functions ###
 
@@ -641,7 +636,7 @@ def load_ocam2k_data(telem_files):
     try:
         ocam2k = np.load(ocam2k_file)
         return ocam2k
-        
+
     except FileNotFoundError:
         # The file was in the string list, but doesn't actually exist on the hard drive
         raise FileNotFoundError(
@@ -1317,8 +1312,9 @@ def compute_aperture_wise_electron_stats(ocam2k, hdr_tbl, num_WFS=4):
         assert(ocam2k[key].ndim == 2), f"ocam2k[{key}] must be a 2D numpy array with shape (num_frames, 304), got shape {ocam2k[key].shape}"
         assert(ocam2k[key].shape[1] == 304), f"ocam2k[{key}] must have shape (num_frames, 304), got shape {ocam2k[key].shape}"
     assert(isinstance(hdr_tbl, (Table, Row, dict))), "hdr_tbl must be an astropy Table or Row"
-    assert('lgs_wfs_rate' in hdr_tbl), "hdr_tbl must contain key 'lgs_wfs_rate', the frame rate of the camera"
-    assert('t_exposure_start' in hdr_tbl), "hdr_tbl must contain key 't_exposure_start', the start time of the exposure"
+    _keys = hdr_tbl.colnames if isinstance(hdr_tbl, (Table, Row)) else hdr_tbl.keys()
+    assert('lgs_wfs_rate' in _keys), "hdr_tbl must contain key 'lgs_wfs_rate', the frame rate of the camera"
+    assert('t_exposure_start' in _keys), "hdr_tbl must contain key 't_exposure_start', the start time of the exposure"
 
     # Get date of observation
     if isinstance(hdr_tbl, Table):
@@ -1368,8 +1364,8 @@ def compute_aperture_wise_electron_rate_stats(ocam2k, hdr_tbl, num_WFS=4):
         assert(ocam2k[key].ndim == 2), f"ocam2k[{key}] must be a 2D numpy array with shape (num_frames, 304), got shape {ocam2k[key].shape}"
         assert(ocam2k[key].shape[1] == 304), f"ocam2k[{key}] must have shape (num_frames, 304), got shape {ocam2k[key].shape}"
     assert(isinstance(hdr_tbl, (Table, Row))), "hdr_tbl must be an astropy Table or Row"
-    assert('lgs_wfs_rate' in hdr_tbl.columns), "hdr_tbl must contain column 'lgs_wfs_rate', the frame rate of the camera"
-    assert('t_exposure_start' in hdr_tbl.columns), "hdr_tbl must contain column 't_exposure_start', the start time of the exposure"
+    assert('lgs_wfs_rate' in hdr_tbl.colnames), "hdr_tbl must contain column 'lgs_wfs_rate', the frame rate of the camera"
+    assert('t_exposure_start' in hdr_tbl.colnames), "hdr_tbl must contain column 't_exposure_start', the start time of the exposure"
 
     # Get date of observation
     if isinstance(hdr_tbl, Table):

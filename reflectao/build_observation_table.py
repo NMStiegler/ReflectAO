@@ -179,6 +179,7 @@ def build_observation_table(
         row_vals['dither_name'] = inst.get_dither_name(hdr)
 
         ### AO system information ###
+        row_vals['propagating'] = inst.was_laser_propagating(hdr)
         row_vals['ao_closed'] = inst.was_waiting_for_DM_lock(hdr) and inst.was_DM_closed_loop(hdr)
         row_vals['lgs_wfs_rate'] = inst.get_lgs_wfs_rate(hdr) * u.Hz
 
