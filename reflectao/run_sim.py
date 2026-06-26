@@ -152,24 +152,17 @@ def run_maos_sim(hdr_tbl_row, seeds=[1]):
     # - Get siglev & bkgrnd for single lgs mode from telemetry 
 
     # cd to the directory with the configurations
-    maos_config_env = os.environ.get("MAOS_CONFIG_PATH")
-    if maos_config_env is None:
-        raise EnvironmentError(
-            "MAOS_CONFIG_PATH environment variable is not set. "
-            "Set it to the directory containing the MAOS .conf files, e.g.:\n"
-            "  export MAOS_CONFIG_PATH=/path/to/keck_maos/kapa/"
-        )
-    maos_configuration_path = Path(maos_config_env)
+    maos_configuration_path = Path("/Users/nstieg/work/ao/keck/maos/keck_maos/kapa/")
     os.chdir(maos_configuration_path)
 
     # Run simulations for each seed (default just [1])
     pp = print_array_maos_style # So we have array sprinting as [1 2 3] instead of [1, 2, 3] which is what MAOS expects
     for seed in seeds:
+        # Output the sim result to /g/lu/data/kapa/{night}/maos/{filename.fits}/A_...#LGS..._seed{seed}
         image_path = Path(hdr_tbl_row['image_path'])
         fits_filename = image_path.name
         night = tu.get_night_from_fits_file_path(image_path)
-        output_base = Path(os.environ.get("KAPA_OUTPUT_PATH", str(tu.get_output_path())))
-        out_dir = str(output_base / night / "maos" / fits_filename / f"{conf_name[:-5]}_seed{seed}")
+        out_dir = f"/g/lu/data/kapa/{night}/maos/{fits_filename}/{conf_name[:-5]}_seed{seed}/"
         
         # Create the output directory if it doesn't exist
         out_dir_path = Path(out_dir)
@@ -199,7 +192,7 @@ def run_maos_sim(hdr_tbl_row, seeds=[1]):
                     f" atm.wddeg={atm_wddeg} atm.ht={pp(brooke_atm_data_heights)}" 
                     f" powfs.hs=[{na_layer_height} inf inf]"
                     f" -O")
-        os.system(maos_cmd)
+    os.system(maos_cmd)
 
 def print_array_maos_style(list_or_array):
     return "[" + " ".join([str(x) for x in list_or_array]) + "]"
