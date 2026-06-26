@@ -24,6 +24,17 @@ This package relies on several other packages developed by the [Moving Universe 
 
 See `environment.yml` for the Python packages we've been using to develop this package. You can recreate the environment using `conda env create -f environment.yml`. 
 
+**Configuration (machine-specific paths)**
+
+Machine-specific paths (data directory, MAOS config location, etc.) are set via a `.env` file in the repo root. To configure for your machine:
+
+```bash
+cp .env.example .env
+# then edit .env with your paths
+```
+
+The `.env` file is gitignored so each user keeps their own local copy. See `.env.example` for the full list of variables and their descriptions. The one required variable with no default is `MAOS_CONFIG_PATH`, which should point to the directory containing the MAOS `.conf` files. If a variable is not set in `.env`, the package falls back to any value already in your shell environment, then to a built-in default.
+
 ## File Structure Reference
 
 **Package Files**
