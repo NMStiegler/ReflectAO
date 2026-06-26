@@ -8,6 +8,7 @@ digital-twin simulations and comparisons.
 The public surface area is intentionally small at this stage.
 """
 
+from . import config  # loads .env into os.environ at import time
 from .build_observation_table import build_observation_table
 from .schema import SCHEMA, ColumnDef, new_empty_observation_table, validate_table_has_schema
 
