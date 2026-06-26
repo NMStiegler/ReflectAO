@@ -17,8 +17,8 @@ def run_maos_sim(hdr_tbl_row, seeds=[1]):
     tt_int_time = (1.0 / hdr_tbl_row['tt_wfs_rate']).to(u.s) # STRAP or TRICK are tip tilt (tt) on Keck I. Assuming if TRICK is being used that no light goes to STRAP
     lbwfs_int_time = 15 * u.s # We set this equal to 15s because we simulate < 15s and so this doesn't matter. SHould be at least 10s (KAON 1303), with longer integrations for fainter guide stars
     max_frame_rate = max(hdr_tbl_row['lgs_wfs_rate'], hdr_tbl_row['tt_wfs_rate']) 
-    sim_dt = (1.0 / max_frame_rate).to(u.s) # Set sim_dt to fastest WFS readout rate in Hz 
-    sim_dtref = sim_dt
+    sim_dt = (1.0 / max_frame_rate).to(u.s) # Set sim_dt to fastest WFS readout rate in Hz
+    sim_dtref = (1.0 / 472) * u.s # Fixed reference time step for KAPA; independent of sim_dt
     sim_end_steps = int((2.0 * u.s / sim_dt).to_value(u.dimensionless_unscaled))
 
     # Set dtrats (ratio of sample period over dt, must be an integer)
