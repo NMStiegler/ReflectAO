@@ -8,6 +8,7 @@ Noah Stiegler
 """
 
 # Import useful packages
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -290,7 +291,16 @@ def _convert_month(month):
 ### Path and file handling functions ###
 
 def get_subap_map_path():
-    return Path("/u/bdigia/code/python/paarti/paarti/utils/sub_ap_map.txt")
+    env = os.environ.get("PAARTI_SUBAP_MAP_PATH")
+    if env:
+        return Path(env)
+    try:
+        import paarti.utils
+        return Path(paarti.utils.__file__).parent / "sub_ap_map.txt"
+    except Exception:
+        raise EnvironmentError(
+            "Cannot find sub_ap_map.txt. Set PAARTI_SUBAP_MAP_PATH to its location."
+        )
 
 def load_subap_map():
     subap_map = mu.load_sub_ap_map(subap_map=get_subap_map_path())
@@ -298,7 +308,16 @@ def load_subap_map():
     return subap_map
 
 def get_actuator_map_path():
-    return Path("/u/bdigia/code/python/paarti/paarti/utils/actuator_map.txt")
+    env = os.environ.get("PAARTI_ACT_MAP_PATH")
+    if env:
+        return Path(env)
+    try:
+        import paarti.utils
+        return Path(paarti.utils.__file__).parent / "actuator_map.txt"
+    except Exception:
+        raise EnvironmentError(
+            "Cannot find actuator_map.txt. Set PAARTI_ACT_MAP_PATH to its location."
+        )
 
 def load_actuator_map():
     actuator_map = mu.load_act_map(actuator_map=get_actuator_map_path())
@@ -307,12 +326,15 @@ def load_actuator_map():
 
 def get_data_path():
     """
-    Get the path to the data directory on the MULab filesystem
-    
+    Get the path to the KAPA data directory.
+
+    Reads the ``KAPA_DATA_PATH`` environment variable; defaults to
+    ``/g/lu/data/kapa/`` (MULab cluster, symlinked to /g3/data/kapa/).
+
     :return: The path to the data directory
     :rtype: pathlib.Path
     """
-    return Path("/g3/data/kapa/")
+    return Path(os.environ.get("KAPA_DATA_PATH", "/g/lu/data/kapa/"))
 
 
 def get_path_to_night(night):
@@ -856,7 +878,7 @@ def get_lbwfs_folder_path_from_image_path(image_path):
     night = image_path.parent.parent.name
     
 
-    return Path(f"/g/lu/data/kapa/{night}/lbwfs_images/")
+    return get_data_path() / night / "lbwfs_images"
 
 ### Plotting helper functions ###
 
