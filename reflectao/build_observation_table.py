@@ -10,6 +10,7 @@ needs a new piece of metadata and KAI doesn't provide it, we should add it to
 KAI rather than duplicating logic here.
 """
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -355,7 +356,7 @@ def build_observation_table(
         
         # Weather handling
         on_sky_fits_file_path = str(row_vals['image_path'])
-        folder_with_on_sky_data = "/u/nstieg/work/ao/keck/massdimm/"
+        folder_with_on_sky_data = os.environ.get("MASSDIMM_DATA_PATH", "/u/nstieg/work/ao/keck/massdimm/")
         if row_vals['instrument_name'] in keck_ao_instruments:
             on_sky_conditions = mu.estimate_on_sky_conditions(on_sky_fits_file_path, folder_with_on_sky_data)
             r0, turbulence_profile, wind_speed_profile, wind_direction_profile, _, _, _, _, tau0, theta0, _ = on_sky_conditions
