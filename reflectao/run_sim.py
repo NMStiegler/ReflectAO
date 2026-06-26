@@ -173,7 +173,14 @@ def run_maos_sim(hdr_tbl_row, seeds=[1]):
     # - Get siglev & bkgrnd for single lgs mode from telemetry
 
     # cd to the directory with the configurations
-    maos_configuration_path = Path("/Users/nstieg/work/ao/keck/maos/keck_maos/kapa/")
+    maos_config_env = os.environ.get("MAOS_CONFIG_PATH")
+    if maos_config_env is None:
+        raise EnvironmentError(
+            "MAOS_CONFIG_PATH environment variable is not set. "
+            "Set it to the directory containing the MAOS .conf files, e.g.:\n"
+            "  export MAOS_CONFIG_PATH=/path/to/keck_maos/kapa/"
+        )
+    maos_configuration_path = Path(maos_config_env)
     os.chdir(maos_configuration_path)
 
     # Run simulations for each seed (default just [1])
@@ -183,7 +190,7 @@ def run_maos_sim(hdr_tbl_row, seeds=[1]):
         image_path = Path(hdr_tbl_row['image_path'])
         fits_filename = image_path.name
         night = tu.get_night_from_fits_file_path(image_path)
-        out_dir = f"/g/lu/data/kapa/{night}/maos/{fits_filename}/{conf_name[:-5]}_seed{seed}/"
+        out_dir = str(tu.get_data_path() / night / "maos" / fits_filename / f"{conf_name[:-5]}_seed{seed}") + "/"
         print(f"\nSeed {seed}: output -> {out_dir}")
 
         # Create the output directory if it doesn't exist
