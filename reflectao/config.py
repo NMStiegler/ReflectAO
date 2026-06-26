@@ -10,7 +10,10 @@ from pathlib import Path
 
 
 def load_env_file():
-    env_path = Path(__file__).parent.parent / ".env"
+    repo_root = Path(__file__).parent.parent
+    env_path = repo_root / ".env"
+    if not env_path.exists():
+        env_path = repo_root / ".env.example"
     if not env_path.exists():
         return
     with open(env_path) as f:

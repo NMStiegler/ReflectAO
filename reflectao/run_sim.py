@@ -183,49 +183,47 @@ def run_maos_sim(hdr_tbl_row, seeds=[1]):
     maos_configuration_path = Path(maos_config_env)
     os.chdir(maos_configuration_path)
 
-    # Run simulations for each seed (default just [1])
     pp = print_array_maos_style # So we have array sprinting as [1 2 3] instead of [1, 2, 3] which is what MAOS expects
-    for seed in seeds:
-        # Output the sim result to /g/lu/data/kapa/{night}/maos/{filename.fits}/A_...#LGS..._seed{seed}
-        image_path = Path(hdr_tbl_row['image_path'])
-        fits_filename = image_path.name
-        night = tu.get_night_from_fits_file_path(image_path)
-        out_dir = str(tu.get_data_path() / night / "maos" / fits_filename / f"{conf_name[:-5]}_seed{seed}") + "/"
-        print(f"\nSeed {seed}: output -> {out_dir}")
 
-        # Create the output directory if it doesn't exist
-        out_dir_path = Path(out_dir)
-        out_dir_path.mkdir(parents=True, exist_ok=True)
+    image_path = Path(hdr_tbl_row['image_path'])
+    fits_filename = image_path.name
+    night = tu.get_night_from_fits_file_path(image_path)
+    out_dir = str(tu.get_data_path() / night / "maos" / fits_filename / conf_name[:-5]) + "/"
+    print(f"Seeds {pp(seeds)}: output -> {out_dir}")
 
-        # Get some data from the header table row
-        atm_wt = hdr_tbl_row['turbulence_profile']
-        atm_ws = hdr_tbl_row['wind_speed_profile'].to_value(u.m / u.s)
-        atm_wddeg = hdr_tbl_row['wind_direction_profile'].to_value(u.deg)
-        zenith_angle = hdr_tbl_row['zenith_angle']
-        na_layer_height = hdr_tbl_row['lgs_layer_alt'].to_value(u.m)
-        print(f"  zenith angle = {zenith_angle:.2f},  NA layer height = {na_layer_height:.1f} m")
-        print(f"  r0 = {r0z:.4f} m,  atm.wt = {atm_wt},  atm.ws = {atm_ws} m/s,  atm.wddeg = {atm_wddeg} deg")
+    # Create the output directory if it doesn't exist
+    out_dir_path = Path(out_dir)
+    out_dir_path.mkdir(parents=True, exist_ok=True)
 
-        # Check if we're using individual signal levels and backgrounds based on telemetry or the fallback estimates
-        # If we have individual levels, we can set them with wfs.siglev & bkgrnd, otherwise we use powfs.siglev & background
-        # to set them for the whole group together (e.g. all 4 LGS WFSs get the same siglev if using powfs.siglev, but can have different siglevs if using wfs.siglev)
-        siglev_command_part = f"wfs.siglev={pp(individual_siglevs)}" if individual_siglevs is not None else f"powfs.siglev={pp(siglev)}"
-        bkgrnd_command_part = f"wfs.bkgrnd={pp(individual_bkgrnd)}" if individual_bkgrnd is not None else f"powfs.bkgrnd={pp(bkgrnd)}"
-        print(f"  {siglev_command_part}")
-        print(f"  {bkgrnd_command_part}")
+    # Get some data from the header table row
+    atm_wt = hdr_tbl_row['turbulence_profile']
+    atm_ws = hdr_tbl_row['wind_speed_profile'].to_value(u.m / u.s)
+    atm_wddeg = hdr_tbl_row['wind_direction_profile'].to_value(u.deg)
+    zenith_angle = hdr_tbl_row['zenith_angle']
+    na_layer_height = hdr_tbl_row['lgs_layer_alt'].to_value(u.m)
+    print(f"zenith angle = {zenith_angle:.2f},  NA layer height = {na_layer_height:.1f} m")
+    print(f"r0 = {r0z:.4f} m,  atm.wt = {atm_wt},  atm.ws = {atm_ws} m/s,  atm.wddeg = {atm_wddeg} deg")
 
-        # Final maos command
-        maos_cmd = str(f"maos -c {conf_name} -o {out_dir}"
-                    f" sim.seeds={seed} sim.zadeg={zenith_angle.to_value(u.deg)}" # include spaces as they're not added automatically
-                    f" sim.dt={sim_dt.to_value(u.s)} sim.dtref={sim_dtref.to_value(u.s)} sim.end={sim_end_steps}"
-                    f" {siglev_command_part} {bkgrnd_command_part} powfs.nearecon={nearecon}"
-                    f" powfs.dtrat={pp(powfs_dtrat_array)} powfs.wvl={pp(powfs_wvl_array)}"
-                    f" wfs.thetax={wfs_thetax} wfs.thetay={wfs_thetay}"
-                    f" atm.r0z={r0z} atm.wt={atm_wt} atm.ws={atm_ws}"
-                    f" atm.wddeg={atm_wddeg} atm.ht={pp(brooke_atm_data_heights)}"
-                    f" powfs.hs=[{na_layer_height} inf inf]"
-                    f" -O")
-        print(f"Running MAOS:\n  {maos_cmd}")
+    # Check if we're using individual signal levels and backgrounds based on telemetry or the fallback estimates
+    # If we have individual levels, we can set them with wfs.siglev & bkgrnd, otherwise we use powfs.siglev & background
+    # to set them for the whole group together (e.g. all 4 LGS WFSs get the same siglev if using powfs.siglev, but can have different siglevs if using wfs.siglev)
+    siglev_command_part = f"wfs.siglev={pp(individual_siglevs)}" if individual_siglevs is not None else f"powfs.siglev={pp(siglev)}"
+    bkgrnd_command_part = f"wfs.bkgrnd={pp(individual_bkgrnd)}" if individual_bkgrnd is not None else f"powfs.bkgrnd={pp(bkgrnd)}"
+    print(f"{siglev_command_part}")
+    print(f"{bkgrnd_command_part}")
+
+    # Final maos command — pass the full seeds list; MAOS loops over seeds internally
+    maos_cmd = str(f"maos -c {conf_name} -o {out_dir}"
+                f" sim.seeds={pp(seeds)} sim.zadeg={zenith_angle.to_value(u.deg)}" # include spaces as they're not added automatically
+                f" sim.dt={sim_dt.to_value(u.s)} sim.dtref={sim_dtref.to_value(u.s)} sim.end={sim_end_steps}"
+                f" {siglev_command_part} {bkgrnd_command_part} powfs.nearecon={nearecon}"
+                f" powfs.dtrat={pp(powfs_dtrat_array)} powfs.wvl={pp(powfs_wvl_array)}"
+                f" wfs.thetax={wfs_thetax} wfs.thetay={wfs_thetay}"
+                f" atm.r0z={r0z} atm.wt={atm_wt} atm.ws={atm_ws}"
+                f" atm.wddeg={atm_wddeg} atm.ht={pp(brooke_atm_data_heights)}"
+                f" powfs.hs=[{na_layer_height} inf inf]"
+                f" -O")
+    print(f"Running MAOS:\n  {maos_cmd}")
     os.system(maos_cmd)
 
 def print_array_maos_style(list_or_array):
